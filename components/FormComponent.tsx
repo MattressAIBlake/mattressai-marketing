@@ -433,13 +433,23 @@ export function FormComponent() {
             <div className="space-y-4 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
               <h2 className="text-xl font-semibold text-white/90">Generated Image</h2>
               <div className="relative rounded-lg overflow-hidden border border-white/10">
-                <Image 
-                  src={generatedImage}
-                  alt="Generated marketing image"
-                  width={1024}
-                  height={1024}
-                  className="w-full h-auto"
-                />
+                {generatedImage.startsWith('data:') ? (
+                  // Use img tag for data URLs
+                  <img 
+                    src={generatedImage}
+                    alt="Generated marketing image"
+                    className="w-full h-auto"
+                  />
+                ) : (
+                  // Use Next.js Image component for regular URLs
+                  <Image 
+                    src={generatedImage}
+                    alt="Generated marketing image"
+                    width={1024}
+                    height={1024}
+                    className="w-full h-auto"
+                  />
+                )}
                 <Button
                   onClick={() => downloadImage(generatedImage)}
                   className="absolute bottom-4 right-4 bg-black/50 hover:bg-black/70 backdrop-blur-sm"

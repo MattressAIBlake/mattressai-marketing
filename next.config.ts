@@ -2,12 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    remotePatterns: [
-      {
-        protocol: 'data',
-        hostname: '*',
-      },
-    ],
+    domains: ['dashboard.themattressai.com', 'chat.themattressai.com'],
   },
 };
 
