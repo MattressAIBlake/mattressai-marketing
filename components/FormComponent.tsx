@@ -1,0 +1,483 @@
+"use client"
+
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { generatePrompt, generateCopyPrompt } from "@/utils/generatePrompt"
+import { Download, Copy, Check } from "lucide-react"
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
+import { Info } from "lucide-react"
+import { AlertCircle } from "lucide-react"
+
+const formSchema = z.object({
+  storeName: z.string().nonempty(),
+  storeAddress: z.string().nonempty(),
+  storePhone: z.string().nonempty(),
+  storeEmail: z.string().email(),
+  assistantUrl: z.string()
+    .url()
+    .refine((url) => {
+      try {
+        const parsedUrl = new URL(url);
+        return [
+          'dashboard.themattressai.com',
+          'www.dashboard.themattressai.com',
+          'chat.themattressai.com',
+          'www.chat.themattressai.com'
+        ].some(domain => parsedUrl.hostname === domain);
+      } catch {
+        return false;
+      }
+    }, {
+      message: 'To use this feature, you must be a MattressAI Retail partner. Please click "Sign up for MattressAI" to get started.'
+    }),
+  platform: z.string().nonempty(),
+  storeDescription: z.string().nonempty(),
+  adIdeas: z.string().nonempty(),
+})
+
+type FormValues = z.infer<typeof formSchema>
+
+type FieldType = {
+  field: {
+    onChange: (value: any) => void;
+    value: any;
+    name: string;
+    ref: React.Ref<any>;
+  };
+};
+
+export function FormComponent() {
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null)
+  const [suggestedCopy, setSuggestedCopy] = useState<string | null>(null)
+  const [copySuccess, setCopySuccess] = useState(false)
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      storeName: "",
+      storeAddress: "",
+      storePhone: "",
+      storeEmail: "",
+      assistantUrl: "",
+      platform: "",
+      storeDescription: "",
+      adIdeas: "",
+    },
+  })
+
+  async function onSubmit(data: FormValues) {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      // Validate assistant URL
+      const urlResponse = await fetch('/api/validateAssistantUrl', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assistantUrl: data.assistantUrl }),
+      })
+
+      if (!urlResponse.ok) {
+        const errorData = await urlResponse.json()
+        throw new Error(errorData.error)
+      }
+
+      // Generate image
+      const imageResponse = await fetch('/api/generateImage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          prompt: generatePrompt(data),
+          platform: data.platform,
+          url: data.assistantUrl
+        }),
+      })
+
+      if (!imageResponse.ok) {
+        throw new Error('Failed to generate image')
+      }
+
+      const imageData = await imageResponse.json()
+      setGeneratedImage(imageData.imageUrl)
+
+      // Generate copy
+      const copyResponse = await fetch('/api/generateCopy', {
+        method: 'POST',
+        body: JSON.stringify({ 
+          prompt: generateCopyPrompt(data)
+        }),
+      })
+
+      if (!copyResponse.ok) {
+        throw new Error('Failed to generate copy')
+      }
+
+      const copyData = await copyResponse.json()
+      setSuggestedCopy(copyData.suggestedCopy)
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+      form.setError('assistantUrl', {
+        type: 'server',
+        message: err instanceof Error ? err.message : 'Invalid assistant URL',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const downloadImage = async (url: string) => {
+    try {
+      const response = await fetch(url)
+      const blob = await response.blob()
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = `mattressai-ad-${Date.now()}.png`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(link.href) // Clean up the URL object
+    } catch (err) {
+      console.error('Error downloading image:', err)
+      setError('Failed to download image')
+    }
+  }
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopySuccess(true)
+      setTimeout(() => setCopySuccess(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy text:', err)
+      setError('Failed to copy text to clipboard')
+    }
+  }
+
+  const SignUpButton = () => (
+    <Button
+      type="button"
+      onClick={() => window.open('https://dashboard.themattressai.com', '_blank')}
+      className="whitespace-nowrap bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-medium rounded-full px-6"
+    >
+      Sign up for MattressAI
+    </Button>
+  )
+
+  return (
+    <TooltipProvider>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-w-2xl mx-auto">
+          <div className="space-y-6 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-white/90">Store Details</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="storeName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center gap-2">
+                        <FormLabel>Store Name</FormLabel>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Enter your store's official business name
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <FormControl>
+                        <Input placeholder="e.g. Sweet Dreams Mattress" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="storeAddress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center gap-2">
+                        <FormLabel>Store Address</FormLabel>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Enter your store's physical location
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <FormControl>
+                        <Input placeholder="e.g. 123 Main St, City, State" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="storePhone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center gap-2">
+                        <FormLabel>Store Phone</FormLabel>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Enter your store's contact number
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <FormControl>
+                        <Input placeholder="e.g. (555) 123-4567" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="storeEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center gap-2">
+                        <FormLabel>Store Email</FormLabel>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Enter your store's email address
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <FormControl>
+                        <Input placeholder="e.g. sales@yourstore.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-white/90">MattressAI Integration</h2>
+              <FormField
+                control={form.control}
+                name="assistantUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>Assistant URL</FormLabel>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Enter your MattressAI Assistant URL
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <div className="flex gap-3">
+                      <FormControl>
+                        <Input placeholder="https://mattressai.com/assistant/..." {...field} />
+                      </FormControl>
+                      <SignUpButton />
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-white/90">Ad Configuration</h2>
+              <FormField
+                control={form.control}
+                name="platform"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>Platform</FormLabel>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Choose the social media platform for your ad
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a platform" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="bg-zinc-900 border border-white/10">
+                        <SelectItem value="Instagram">
+                          Instagram (1:1 Square)
+                        </SelectItem>
+                        <SelectItem value="Facebook">
+                          Facebook (Landscape)
+                        </SelectItem>
+                        <SelectItem value="Twitter">
+                          X (Landscape)
+                        </SelectItem>
+                        <SelectItem value="TikTok">
+                          TikTok (Vertical)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="storeDescription"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>Store Description</FormLabel>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Describe your store and its unique selling points
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Describe what makes your store special..."
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="adIdeas"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center gap-2">
+                      <FormLabel>Ad Ideas</FormLabel>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Share your ideas for the ad content
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Share your ideas for the ad..."
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
+          <Button 
+            type="submit" 
+            disabled={isLoading}
+            className="w-full bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white py-6 text-lg font-medium rounded-full"
+          >
+            {isLoading ? 'Generating...' : 'Generate Marketing Content'}
+          </Button>
+
+          {error && (
+            <div className="flex items-center gap-2 p-4 mt-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400">
+              <AlertCircle className="h-5 w-5 flex-shrink-0" />
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+        </form>
+      </Form>
+
+      {(generatedImage || suggestedCopy) && (
+        <div className="mt-8 space-y-8 max-w-2xl mx-auto">
+          {generatedImage && (
+            <div className="space-y-4 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
+              <h2 className="text-xl font-semibold text-white/90">Generated Image</h2>
+              <div className="relative rounded-lg overflow-hidden border border-white/10">
+                <img src={generatedImage} alt="Generated marketing image" className="w-full h-auto" />
+                <Button
+                  onClick={() => downloadImage(generatedImage)}
+                  className="absolute bottom-4 right-4 bg-black/50 hover:bg-black/70 backdrop-blur-sm"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {suggestedCopy && (
+            <div className="space-y-4 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
+              <h2 className="text-xl font-semibold text-white/90">Suggested Copy</h2>
+              <div className="relative">
+                <Textarea
+                  value={suggestedCopy}
+                  readOnly
+                  className="min-h-[100px] pr-24 bg-zinc-950/50"
+                />
+                <Button
+                  onClick={() => copyToClipboard(suggestedCopy)}
+                  className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 backdrop-blur-sm"
+                >
+                  {copySuccess ? (
+                    <Check className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Copy className="h-4 w-4 mr-2" />
+                  )}
+                  {copySuccess ? 'Copied!' : 'Copy'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </TooltipProvider>
+  )
+} 

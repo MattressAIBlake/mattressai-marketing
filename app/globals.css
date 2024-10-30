@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+  --ring: rgb(45 212 191 / 0.5);
+  --input: rgb(113 113 122 / 0.5);
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+}
