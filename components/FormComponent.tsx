@@ -21,6 +21,7 @@ import { Download, Copy, Check } from "lucide-react"
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
 import { Info } from "lucide-react"
 import { AlertCircle } from "lucide-react"
+import Image from "next/image"
 
 const formSchema = z.object({
   storeName: z.string().nonempty(),
@@ -50,15 +51,6 @@ const formSchema = z.object({
 })
 
 type FormValues = z.infer<typeof formSchema>
-
-type FieldType = {
-  field: {
-    onChange: (value: any) => void;
-    value: any;
-    name: string;
-    ref: React.Ref<any>;
-  };
-};
 
 export function FormComponent() {
   const [isLoading, setIsLoading] = useState(false)
@@ -200,7 +192,7 @@ export function FormComponent() {
                             <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            Enter your store's official business name
+                            Enter your store&apos;s official business name
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -224,7 +216,7 @@ export function FormComponent() {
                             <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            Enter your store's physical location
+                            Enter your store&apos;s physical location
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -248,7 +240,7 @@ export function FormComponent() {
                             <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            Enter your store's contact number
+                            Enter your store&apos;s contact number
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -272,7 +264,7 @@ export function FormComponent() {
                             <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            Enter your store's email address
+                            Enter your store&apos;s email address
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -441,7 +433,13 @@ export function FormComponent() {
             <div className="space-y-4 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
               <h2 className="text-xl font-semibold text-white/90">Generated Image</h2>
               <div className="relative rounded-lg overflow-hidden border border-white/10">
-                <img src={generatedImage} alt="Generated marketing image" className="w-full h-auto" />
+                <Image 
+                  src={generatedImage}
+                  alt="Generated marketing image"
+                  width={1024}
+                  height={1024}
+                  className="w-full h-auto"
+                />
                 <Button
                   onClick={() => downloadImage(generatedImage)}
                   className="absolute bottom-4 right-4 bg-black/50 hover:bg-black/70 backdrop-blur-sm"
