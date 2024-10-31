@@ -24,10 +24,10 @@ import { AlertCircle } from "lucide-react"
 import Image from "next/image"
 
 const formSchema = z.object({
-  storeName: z.string().nullish(),
-  storeAddress: z.string().nullish(),
-  storePhone: z.string().nullish(),
-  storeEmail: z.string().email().nullish(),
+  storeName: z.string().optional(),
+  storeAddress: z.string().optional(),
+  storePhone: z.string().optional(),
+  storeEmail: z.string().email().optional(),
   assistantUrl: z.string().url().refine(url => {
     const validDomains = [
       'dashboard.themattressai.com',
@@ -42,8 +42,8 @@ const formSchema = z.object({
     }
   }, 'To use this feature, you must be a MattressAI Retail partner. Please click "Sign up for MattressAI" to get started.'),
   platform: z.string().min(1, 'Please select a platform'),
-  storeDescription: z.string().nullish(),
-  adIdeas: z.string().nullish(),
+  storeDescription: z.string().optional(),
+  adIdeas: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -58,14 +58,14 @@ export function FormComponent() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      storeName: "",
-      storeAddress: "",
-      storePhone: "",
-      storeEmail: "",
+      storeName: undefined,
+      storeAddress: undefined,
+      storePhone: undefined,
+      storeEmail: undefined,
       assistantUrl: "",
       platform: "",
-      storeDescription: "",
-      adIdeas: "",
+      storeDescription: undefined,
+      adIdeas: undefined,
     },
   })
 
@@ -94,12 +94,12 @@ export function FormComponent() {
           prompt: generatePrompt({
             platform: data.platform,
             assistantUrl: data.assistantUrl,
-            storeName: data.storeName || '',
-            storeAddress: data.storeAddress || '',
-            storePhone: data.storePhone || '',
-            storeEmail: data.storeEmail || '',
-            storeDescription: data.storeDescription || '',
-            adIdeas: data.adIdeas || ''
+            storeName: data.storeName ?? '',
+            storeAddress: data.storeAddress ?? '',
+            storePhone: data.storePhone ?? '',
+            storeEmail: data.storeEmail ?? '',
+            storeDescription: data.storeDescription ?? '',
+            adIdeas: data.adIdeas ?? ''
           }),
           platform: data.platform,
           url: data.assistantUrl
@@ -120,12 +120,12 @@ export function FormComponent() {
           prompt: generateCopyPrompt({
             platform: data.platform,
             assistantUrl: data.assistantUrl,
-            storeName: data.storeName || '',
-            storeAddress: data.storeAddress || '',
-            storePhone: data.storePhone || '',
-            storeEmail: data.storeEmail || '',
-            storeDescription: data.storeDescription || '',
-            adIdeas: data.adIdeas || ''
+            storeName: data.storeName ?? '',
+            storeAddress: data.storeAddress ?? '',
+            storePhone: data.storePhone ?? '',
+            storeEmail: data.storeEmail ?? '',
+            storeDescription: data.storeDescription ?? '',
+            adIdeas: data.adIdeas ?? ''
           })
         }),
       })
@@ -211,7 +211,11 @@ export function FormComponent() {
                         </Tooltip>
                       </div>
                       <FormControl>
-                        <Input placeholder="e.g. Sweet Dreams Mattress" {...field} />
+                        <Input 
+                          placeholder="e.g. Sweet Dreams Mattress" 
+                          {...field} 
+                          value={field.value ?? ''} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
