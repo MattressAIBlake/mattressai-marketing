@@ -4,7 +4,7 @@ import * as QRCode from 'qrcode';
 import sharp from 'sharp'
 import { createCanvas, loadImage } from '@napi-rs/canvas'
 
-export const maxDuration = 300; // 5 minutes
+export const maxDuration = 60; // 1 minute max for hobby plan
 export const dynamic = 'force-dynamic';
 
 const openai = new OpenAI({
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
       quality: 'standard',
       style: 'natural',
     }, {
-      timeout: 300000, // 5 minutes
+      timeout: 30000, // 30 seconds for OpenAI call
     })
 
     const dallEImageUrl = response.data[0].url
@@ -57,10 +57,10 @@ export async function POST(req: Request) {
 
     // Increase timeout for fetching the generated image
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 240000); // 4 minutes
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 seconds for fetch
 
     let attempts = 0;
-    const maxAttempts = 3;
+    const maxAttempts = 2; // Reduced from 3 to 2 attempts
 
     let imageResponse;
     while (attempts < maxAttempts) {
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
         attempts++;
       } catch (error) {
         if (attempts === maxAttempts) throw error;
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+        await new Promise(resolve => setTimeout(resolve, 500 * attempts)); // Reduced delay to 500ms
       }
     }
 
