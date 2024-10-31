@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "app/api/generateImage/route.ts": {
+      "maxDuration": 300
+    }
+  }
+} 

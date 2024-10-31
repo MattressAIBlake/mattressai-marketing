@@ -36,162 +36,144 @@ export async function POST(req: Request) {
 
     const size = sizeMapping[platform as keyof typeof sizeMapping] || '1024x1024'
 
-    // Single attempt with timeout
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 120000) // 2 minute timeout
+    // Increase timeout for OpenAI call
+    const response = await openai.images.generate({
+      model: 'dall-e-3',
+      prompt,
+      n: 1,
+      size: size as SupportedSize,
+      quality: 'standard',
+      style: 'natural',
+    }, {
+      timeout: 300000, // 5 minutes
+    })
 
-    try {
-      const response = await openai.images.generate({
-        model: 'dall-e-3',
-        prompt,
-        n: 1,
-        size: size as SupportedSize,
-        quality: 'standard',
-        style: 'natural',
-      }, { signal: controller.signal })
-
-      clearTimeout(timeout)
-
-      const dallEImageUrl = response.data[0].url
-      if (!dallEImageUrl) {
-        throw new Error('Failed to generate image URL')
-      }
-
-      const imageController = new AbortController()
-      const imageTimeout = setTimeout(() => imageController.abort(), 60000) // 1 minute timeout
-
-      const imageResponse = await fetch(dallEImageUrl, { 
-        signal: imageController.signal,
-        headers: {
-          'Accept': 'image/*'
-        }
-      })
-      
-      clearTimeout(imageTimeout)
-
-      if (!imageResponse.ok) {
-        throw new Error(`Failed to fetch generated image: ${imageResponse.status}`)
-      }
-
-      // Rest of the image processing code...
-      const imageBuffer = await imageResponse.arrayBuffer()
-      const baseImage = sharp(Buffer.from(imageBuffer))
-
-      // Create larger canvas for QR code with gradient background
-      const canvas = createCanvas(400, 400)
-      const ctx = canvas.getContext('2d')
-
-      // Create rounded rectangle path
-      const cornerRadius = 20
-      ctx.beginPath()
-      ctx.moveTo(cornerRadius, 0)
-      ctx.lineTo(400 - cornerRadius, 0)
-      ctx.quadraticCurveTo(400, 0, 400, cornerRadius)
-      ctx.lineTo(400, 400 - cornerRadius)
-      ctx.quadraticCurveTo(400, 400, 400 - cornerRadius, 400)
-      ctx.lineTo(cornerRadius, 400)
-      ctx.quadraticCurveTo(0, 400, 0, 400 - cornerRadius)
-      ctx.lineTo(0, cornerRadius)
-      ctx.quadraticCurveTo(0, 0, cornerRadius, 0)
-      ctx.closePath()
-      
-      // Clip to the rounded rectangle
-      ctx.clip()
-
-      // Create gradient background with transparency
-      const gradient = ctx.createLinearGradient(0, 0, 0, 400)
-      gradient.addColorStop(0, 'rgba(26, 38, 52, 0.85)')
-      gradient.addColorStop(0.33, 'rgba(44, 62, 80, 0.85)')
-      gradient.addColorStop(0.66, 'rgba(52, 73, 94, 0.85)')
-      gradient.addColorStop(1, 'rgba(43, 88, 118, 0.85)')
-
-      // Fill background with gradient
-      ctx.fillStyle = gradient
-      ctx.fillRect(0, 0, 400, 400)
-
-      // Generate white QR code - smaller relative to canvas
-      const qrCodeDataUrl = await QRCode.toDataURL(url, { 
-        width: 220,
-        margin: 0,
-        color: {
-          dark: '#FFFFFF',
-          light: '#00000000'
-        }
-      })
-      const qrCodeBase64 = qrCodeDataUrl.split(',')[1]
-      const qrCodeBuffer = Buffer.from(qrCodeBase64, 'base64')
-
-      // Draw QR code in center with more padding
-      const qrImage = await sharp(qrCodeBuffer).toBuffer()
-      const qrCodeImg = await loadImage(qrImage)
-      ctx.drawImage(qrCodeImg, 90, 90, 220, 220)
-
-      // Add text styling with clean white text
-      ctx.fillStyle = '#FFFFFF'
-      ctx.textAlign = 'center'
-      
-      // Remove all shadows and effects
-      ctx.shadowColor = 'transparent'
-      ctx.shadowBlur = 0
-      ctx.shadowOffsetX = 0
-      ctx.shadowOffsetY = 0
-
-      // Top text
-      ctx.font = 'bold 42px Arial'
-      ctx.fillText('Mattress Match', 200, 55)
-
-      // Bottom text
-      ctx.font = 'bold 46px Arial'
-      ctx.fillText('Using AI', 200, 355)
-      
-      // Convert canvas to buffer
-      const finalQRBuffer = canvas.toBuffer()
-
-      // Calculate position for top left quadrant
-      // Adding some padding from edges
-      const qrLeft = 40  // Padding from left edge
-      const qrTop = 40   // Padding from top edge
-
-      // Composite QR Code onto DALL-E Image
-      const finalImageBuffer = await baseImage
-        .composite([
-          {
-            input: finalQRBuffer,
-            top: qrTop,
-            left: qrLeft,
-          },
-        ])
-        .png()
-        .toBuffer()
-
-      // Convert Final Image to Base64
-      const finalImageBase64 = finalImageBuffer.toString('base64')
-      const dataUrl = `data:image/png;base64,${finalImageBase64}`
-
-      return NextResponse.json({ imageUrl: dataUrl })
-    } catch (err) {
-      if (err instanceof Error) {
-        if (err.name === 'AbortError') {
-          return NextResponse.json({ 
-            error: 'Image generation timed out. Please try again.' 
-          }, { status: 504 })
-        }
-        if ('error' in err) {
-          return NextResponse.json({ 
-            error: err.message || 'OpenAI API error'
-          }, { status: 500 })
-        }
-      }
-      throw err
+    const dallEImageUrl = response.data[0].url
+    if (!dallEImageUrl) {
+      throw new Error('Failed to generate image URL')
     }
 
+    // Increase timeout for fetching the generated image
+    const imageResponse = await fetch(dallEImageUrl, {
+      headers: {
+        'Accept': 'image/*'
+      },
+      timeout: 120000 // 2 minutes
+    })
+
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to fetch generated image: ${imageResponse.status}`)
+    }
+
+    // Rest of the image processing code...
+    const imageBuffer = await imageResponse.arrayBuffer()
+    const baseImage = sharp(Buffer.from(imageBuffer))
+
+    // Create larger canvas for QR code with gradient background
+    const canvas = createCanvas(400, 400)
+    const ctx = canvas.getContext('2d')
+
+    // Create rounded rectangle path
+    const cornerRadius = 20
+    ctx.beginPath()
+    ctx.moveTo(cornerRadius, 0)
+    ctx.lineTo(400 - cornerRadius, 0)
+    ctx.quadraticCurveTo(400, 0, 400, cornerRadius)
+    ctx.lineTo(400, 400 - cornerRadius)
+    ctx.quadraticCurveTo(400, 400, 400 - cornerRadius, 400)
+    ctx.lineTo(cornerRadius, 400)
+    ctx.quadraticCurveTo(0, 400, 0, 400 - cornerRadius)
+    ctx.lineTo(0, cornerRadius)
+    ctx.quadraticCurveTo(0, 0, cornerRadius, 0)
+    ctx.closePath()
+    
+    // Clip to the rounded rectangle
+    ctx.clip()
+
+    // Create gradient background with transparency
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400)
+    gradient.addColorStop(0, 'rgba(26, 38, 52, 0.85)')
+    gradient.addColorStop(0.33, 'rgba(44, 62, 80, 0.85)')
+    gradient.addColorStop(0.66, 'rgba(52, 73, 94, 0.85)')
+    gradient.addColorStop(1, 'rgba(43, 88, 118, 0.85)')
+
+    // Fill background with gradient
+    ctx.fillStyle = gradient
+    ctx.fillRect(0, 0, 400, 400)
+
+    // Generate white QR code - smaller relative to canvas
+    const qrCodeDataUrl = await QRCode.toDataURL(url, { 
+      width: 220,
+      margin: 0,
+      color: {
+        dark: '#FFFFFF',
+        light: '#00000000'
+      }
+    })
+    const qrCodeBase64 = qrCodeDataUrl.split(',')[1]
+    const qrCodeBuffer = Buffer.from(qrCodeBase64, 'base64')
+
+    // Draw QR code in center with more padding
+    const qrImage = await sharp(qrCodeBuffer).toBuffer()
+    const qrCodeImg = await loadImage(qrImage)
+    ctx.drawImage(qrCodeImg, 90, 90, 220, 220)
+
+    // Add text styling with clean white text
+    ctx.fillStyle = '#FFFFFF'
+    ctx.textAlign = 'center'
+    
+    // Remove all shadows and effects
+    ctx.shadowColor = 'transparent'
+    ctx.shadowBlur = 0
+    ctx.shadowOffsetX = 0
+    ctx.shadowOffsetY = 0
+
+    // Top text
+    ctx.font = 'bold 42px Arial'
+    ctx.fillText('Mattress Match', 200, 55)
+
+    // Bottom text
+    ctx.font = 'bold 46px Arial'
+    ctx.fillText('Using AI', 200, 355)
+    
+    // Convert canvas to buffer
+    const finalQRBuffer = canvas.toBuffer()
+
+    // Calculate position for top left quadrant
+    // Adding some padding from edges
+    const qrLeft = 40  // Padding from left edge
+    const qrTop = 40   // Padding from top edge
+
+    // Composite QR Code onto DALL-E Image
+    const finalImageBuffer = await baseImage
+      .composite([
+        {
+          input: finalQRBuffer,
+          top: qrTop,
+          left: qrLeft,
+        },
+      ])
+      .png()
+      .toBuffer()
+
+    // Convert Final Image to Base64
+    const finalImageBase64 = finalImageBuffer.toString('base64')
+    const dataUrl = `data:image/png;base64,${finalImageBase64}`
+
+    return NextResponse.json({ imageUrl: dataUrl })
   } catch (error) {
-    console.error('Image generation error:', error);
-    return new Response(JSON.stringify({
-      error: "Sorry, we couldn't generate your image right now. Please try again in a few moments."
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    console.error('Image generation error:', error)
+    
+    if (error instanceof Error) {
+      if (error.name === 'AbortError' || error.message.includes('timeout')) {
+        return NextResponse.json({ 
+          error: 'The request took too long to complete. Please try again.' 
+        }, { status: 504 })
+      }
+    }
+
+    return NextResponse.json({
+      error: "An error occurred while generating the image. Please try again."
+    }, { status: 500 })
   }
 }
