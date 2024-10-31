@@ -314,7 +314,7 @@ export function FormComponent() {
                         </TooltipContent>
                       </Tooltip>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
                       <FormControl>
                         <Input placeholder="https://mattressai.com/assistant/..." {...field} />
                       </FormControl>
