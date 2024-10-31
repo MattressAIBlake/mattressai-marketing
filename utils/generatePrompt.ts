@@ -5,8 +5,12 @@ type PromptData = {
   storeAddress: string;
   storePhone: string;
   storeEmail: string;
+  storeUrl: string;
   storeDescription: string;
   adIdeas: string;
+  metaphor: string;
+  style: string;
+  colors: string;
 }
 
 const platformInstructions = {
@@ -32,51 +36,81 @@ export function generatePrompt(data: PromptData) {
   const platform = data.platform as keyof typeof platformInstructions
   const platformInfo = platformInstructions[platform]
 
-  return `
-Create a  marketing image based on the following concept and store details:
+  const metaphorContext = data.metaphor ? `
+EMOTIONAL CONTEXT:
+The image should evoke the feeling of someone who is ${data.metaphor.toLowerCase()}, seeking a solution to their sleep problems.` : ''
 
-CORE CONCEPT:
-${data.adIdeas}
+  const styleDirection = data.style ? `
+VISUAL STYLE:
+The image should be ${data.style.toLowerCase()} in nature, creating a ${data.style.toLowerCase()} atmosphere.` : ''
 
+  const colorInstructions = data.colors ? `
+COLOR PALETTE:
+Use these specific colors in the image: ${data.colors}` : ''
+
+  const storeContext = data.storeDescription ? `
 STORE CONTEXT:
-${data.storeDescription}
+${data.storeDescription}` : ''
 
-Create a  premium-quality image that captures the essence of mattress shopping in an engaging and appealing way. Use rich, vibrant colors to attract attention. Consider incorporating one of the following ideas:
+  const concept = data.adIdeas ? `
+CORE CONCEPT:
+Create an image that incorporates this idea: ${data.adIdeas}` : `
+CORE CONCEPT:
+Create an appealing mattress store advertisement that emphasizes comfort and quality.`
 
-	•	A cozy bedroom setting with elegantly arranged mattresses, showcasing comfort and variety.
-	•	A person comfortably floating on a mattress among soft, fluffy clouds, symbolizing the quest for perfect sleep.
-	•	An artistic display of mattresses layered or stacked in a visually pleasing pattern, highlighting choice and abundance.
+  return `
+Create a marketing image for a mattress store based on the following:
+${concept}
+Remember to keep the focus on mattresses, bedding, and sleep-related themes regardless of the creative direction.
+${storeContext}${metaphorContext}${styleDirection}${colorInstructions}
 
-Fill the entire frame with this captivating visual—no empty space—to maximize impact. Ensure the composition naturally guides the viewers eye to the bottom right corner while keeping the left upper quadrant less busy to allow space
+COMPOSITION REQUIREMENTS:
+- Do not include any text or typography in the image
+- Position the main focal point on the right side of the image
+- Leave subtle negative space in the top left quadrant
+
+Fill the frame completely while maintaining the specified composition requirements.
 
 TECHNICAL SPECIFICATIONS:
 - Format: ${platformInfo.style}
 - Dimensions: ${platformInfo.dimensions}
 - Photorealistic, high-quality rendering
+- No text or typography elements
 `.trim()
 }
 
 export function generateCopyPrompt(data: PromptData) {
-  return `
-Create compelling marketing copy for a mattress store with the following details:
+  const storeInfo = [
+    data.storeName,
+    data.storeAddress,
+    data.storePhone,
+    data.storeEmail,
+    data.storeUrl
+  ].filter(Boolean).join(' | ')
 
+  const storeInfoSection = storeInfo ? `
 STORE INFORMATION:
-${data.storeName} | ${data.storeAddress}
-${data.storePhone} | ${data.storeEmail}
+${storeInfo}` : ''
 
+  const storeDescriptionSection = data.storeDescription ? `
 STORE DESCRIPTION:
-${data.storeDescription}
+${data.storeDescription}` : ''
 
+  const messageSection = data.adIdeas ? `
 DESIRED MESSAGE:
-${data.adIdeas}
+${data.adIdeas}` : ''
+
+  return `
+Create compelling marketing copy for a mattress store:${storeInfoSection}${storeDescriptionSection}${messageSection}
 
 Please write attention-grabbing copy that:
-1. Highlights the store's unique value proposition
+1. Highlights quality sleep and comfort${data.storeName ? ' with emphasis on our store\'s unique value' : ''}
 2. Includes a clear call-to-action that encourages scanning the QR code in the bottom right corner of the image
 3. Uses an engaging, conversational tone
 4. Incorporates relevant emojis for ${data.platform}
 5. Stays within platform-appropriate length
-6. Emphasizes comfort, quality, and customer satisfaction
+6. Emphasizes comfort, quality, and customer satisfaction${data.storeUrl ? `
+7. Includes the store's website URL` : ''}
 
 The copy should be optimized for ${data.platform} and complement the marketing image.
 `.trim()

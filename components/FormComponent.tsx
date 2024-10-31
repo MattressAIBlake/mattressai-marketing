@@ -28,6 +28,7 @@ const formSchema = z.object({
   storeAddress: z.string().optional(),
   storePhone: z.string().optional(),
   storeEmail: z.string().email().optional(),
+  storeUrl: z.string().url().optional(),
   assistantUrl: z.string().url().refine(url => {
     const validDomains = [
       'dashboard.themattressai.com',
@@ -45,6 +46,9 @@ const formSchema = z.object({
   platform: z.string().min(1, 'Please select a platform'),
   storeDescription: z.string().optional(),
   adIdeas: z.string().optional(),
+  metaphor: z.string().optional(),
+  style: z.string().optional(),
+  colors: z.string().optional(),
 }).strict()
 
 type FormValues = z.infer<typeof formSchema>
@@ -63,10 +67,14 @@ export function FormComponent() {
       storeAddress: '',
       storePhone: '',
       storeEmail: '',
+      storeUrl: '',
       assistantUrl: '',
       platform: '',
       storeDescription: '',
       adIdeas: '',
+      metaphor: '',
+      style: '',
+      colors: '',
     },
   })
 
@@ -100,7 +108,10 @@ export function FormComponent() {
             storePhone: data.storePhone ?? '',
             storeEmail: data.storeEmail ?? '',
             storeDescription: data.storeDescription ?? '',
-            adIdeas: data.adIdeas ?? ''
+            adIdeas: data.adIdeas ?? '',
+            metaphor: data.metaphor ?? '',
+            style: data.style ?? '',
+            colors: data.colors ?? ''
           }),
           platform: data.platform,
           url: data.assistantUrl
@@ -130,8 +141,12 @@ export function FormComponent() {
             storeAddress: data.storeAddress ?? '',
             storePhone: data.storePhone ?? '',
             storeEmail: data.storeEmail ?? '',
+            storeUrl: data.storeUrl ?? '',
             storeDescription: data.storeDescription ?? '',
-            adIdeas: data.adIdeas ?? ''
+            adIdeas: data.adIdeas ?? '',
+            metaphor: data.metaphor ?? '',
+            style: data.style ?? '',
+            colors: data.colors ?? ''
           })
         }),
       })
@@ -208,17 +223,7 @@ export function FormComponent() {
                       name="storeName"
                       render={({ field }) => (
                         <FormItem>
-                          <div className="flex items-center gap-2">
-                            <FormLabel>Store Name</FormLabel>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Recommended: Enter your store&apos;s official business name for better personalization
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
+                          <FormLabel>Store Name</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="e.g. Sweet Dreams Mattress" 
@@ -236,17 +241,7 @@ export function FormComponent() {
                       name="storeAddress"
                       render={({ field }) => (
                         <FormItem>
-                          <div className="flex items-center gap-2">
-                            <FormLabel>Store Address</FormLabel>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Recommended: Enter your store&apos;s physical location to help localize the content
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
+                          <FormLabel>Store Address</FormLabel>
                           <FormControl>
                             <Input placeholder="e.g. 123 Main St, City, State" {...field} />
                           </FormControl>
@@ -260,17 +255,7 @@ export function FormComponent() {
                       name="storePhone"
                       render={({ field }) => (
                         <FormItem>
-                          <div className="flex items-center gap-2">
-                            <FormLabel>Store Phone</FormLabel>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Recommended: Add your contact number to make it easier for customers to reach you
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
+                          <FormLabel>Store Phone</FormLabel>
                           <FormControl>
                             <Input placeholder="e.g. (555) 123-4567" {...field} />
                           </FormControl>
@@ -284,19 +269,27 @@ export function FormComponent() {
                       name="storeEmail"
                       render={({ field }) => (
                         <FormItem>
-                          <div className="flex items-center gap-2">
-                            <FormLabel>Store Email</FormLabel>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Recommended: Include your email for additional contact options
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
+                          <FormLabel>Store Email</FormLabel>
                           <FormControl>
                             <Input placeholder="e.g. sales@yourstore.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="storeUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Store URL</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="e.g., https://www.yourstore.com" 
+                              {...field} 
+                              value={field.value ?? ''} 
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -384,17 +377,7 @@ export function FormComponent() {
                     name="storeDescription"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex items-center gap-2">
-                          <FormLabel>Store Description</FormLabel>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              Recommended: Describe your store and its unique selling points for more targeted content
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
+                        <FormLabel>Store Description</FormLabel>
                         <FormControl>
                           <Textarea 
                             placeholder="Describe what makes your store special..."
@@ -412,22 +395,87 @@ export function FormComponent() {
                     name="adIdeas"
                     render={({ field }) => (
                       <FormItem>
-                        <div className="flex items-center gap-2">
-                          <FormLabel>Ad Ideas</FormLabel>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              Recommended: Share your ideas for the ad content to better customize the output
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
+                        <FormLabel>Ad Ideas</FormLabel>
                         <FormControl>
                           <Textarea 
                             placeholder="Share your ideas for the ad..."
                             className="min-h-[100px]"
                             {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-6 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold text-white/90">Visual Preferences</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="metaphor"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Metaphor</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a metaphor" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="bg-zinc-900 border border-white/10">
+                              <SelectItem value="Lost">Lost</SelectItem>
+                              <SelectItem value="Confused">Confused</SelectItem>
+                              <SelectItem value="Busy">Busy</SelectItem>
+                              <SelectItem value="Frustrated">Frustrated</SelectItem>
+                              <SelectItem value="any">Any</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="style"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Style</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a style" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="bg-zinc-900 border border-white/10">
+                              <SelectItem value="Beautiful">Beautiful</SelectItem>
+                              <SelectItem value="Surreal">Surreal</SelectItem>
+                              <SelectItem value="Abstract">Abstract</SelectItem>
+                              <SelectItem value="Calm">Calm</SelectItem>
+                              <SelectItem value="any">Any</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="colors"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Color Palette</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="e.g., blue and gold, or #FF5733, #33FF57" 
+                            {...field} 
+                            className="bg-zinc-950/50"
                           />
                         </FormControl>
                         <FormMessage />
