@@ -22,6 +22,7 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/comp
 import { Info } from "lucide-react"
 import { AlertCircle } from "lucide-react"
 import Image from "next/image"
+import { toast } from 'react-toastify'
 
 const formSchema = z.object({
   storeName: z.string().optional(),
