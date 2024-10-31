@@ -141,7 +141,7 @@ export async function POST(req: Request) {
     ctx.fillText('Using AI', 200, 355)
     
     // Convert canvas to buffer
-    const finalQRBuffer = canvas.toBuffer()
+    const finalQRBuffer = canvas.toBuffer('image/png')
 
     // Calculate position for top left quadrant
     // Adding some padding from edges
