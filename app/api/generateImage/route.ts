@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import * as QRCode from 'qrcode';
 import sharp from 'sharp'
-import { createCanvas, loadImage } from '@napi-rs/canvas'
+import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas'
 
 export const maxDuration = 60; // 1 minute max for hobby plan
 export const dynamic = 'force-dynamic';
@@ -147,12 +147,12 @@ export async function POST(req: Request) {
     ctx.shadowOffsetY = 0
 
     // Top text
-    ctx.font = 'bold 42px Arial'
+    ctx.font = 'bold 42px system-ui, -apple-system, Arial, sans-serif'
     ctx.fillText('Mattress Match', 200, 55)
 
-    // Bottom text
-    ctx.font = 'bold 46px Arial'
-    ctx.fillText('Using AI', 200, 355)
+    // Bottom text - moved from 355 to 370
+    ctx.font = 'bold 46px system-ui, -apple-system, Arial, sans-serif'
+    ctx.fillText('Using AI', 200, 370)
     
     // Convert canvas to buffer
     const finalQRBuffer = canvas.toBuffer('image/png')
@@ -195,3 +195,5 @@ export async function POST(req: Request) {
     }, { status: 500 })
   }
 }
+
+GlobalFonts.registerFromPath('public/fonts/Arial.ttf', 'Arial')
