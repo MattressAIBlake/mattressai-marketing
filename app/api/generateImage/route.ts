@@ -36,12 +36,11 @@ export async function POST(req: Request) {
 
     const size = sizeMapping[platform as keyof typeof sizeMapping] || '1024x1024'
 
-    // Add timeout to DALL-E request
+    // Single attempt with timeout
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 50000) // 50 second timeout
+    const timeout = setTimeout(() => controller.abort(), 120000) // 2 minute timeout
 
     try {
-      // Generate DALL-E Image with timeout
       const response = await openai.images.generate({
         model: 'dall-e-3',
         prompt,
@@ -58,12 +57,14 @@ export async function POST(req: Request) {
         throw new Error('Failed to generate image URL')
       }
 
-      // Fetch image with timeout
       const imageController = new AbortController()
-      const imageTimeout = setTimeout(() => imageController.abort(), 30000) // 30 second timeout
+      const imageTimeout = setTimeout(() => imageController.abort(), 60000) // 1 minute timeout
 
       const imageResponse = await fetch(dallEImageUrl, { 
-        signal: imageController.signal 
+        signal: imageController.signal,
+        headers: {
+          'Accept': 'image/*'
+        }
       })
       
       clearTimeout(imageTimeout)
@@ -172,12 +173,19 @@ export async function POST(req: Request) {
 
       return NextResponse.json({ imageUrl: dataUrl })
     } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        return NextResponse.json({ 
-          error: 'Image generation timed out. Please try again.' 
-        }, { status: 504 })
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') {
+          return NextResponse.json({ 
+            error: 'Image generation timed out. Please try again.' 
+          }, { status: 504 })
+        }
+        if ('error' in err) {
+          return NextResponse.json({ 
+            error: err.message || 'OpenAI API error'
+          }, { status: 500 })
+        }
       }
-      throw err // Re-throw other errors
+      throw err
     }
 
   } catch (error) {

@@ -36,7 +36,8 @@ const formSchema = z.object({
       'www.chat.themattressai.com'
     ];
     try {
-      return validDomains.includes(new URL(url).hostname);
+      const parsedUrl = new URL(url);
+      return validDomains.includes(parsedUrl.hostname);
     } catch {
       return false;
     }
@@ -44,7 +45,7 @@ const formSchema = z.object({
   platform: z.string().min(1, 'Please select a platform'),
   storeDescription: z.string().optional(),
   adIdeas: z.string().optional(),
-})
+}).strict()
 
 type FormValues = z.infer<typeof formSchema>
 
@@ -58,14 +59,14 @@ export function FormComponent() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      storeName: undefined,
-      storeAddress: undefined,
-      storePhone: undefined,
-      storeEmail: undefined,
-      assistantUrl: "",
-      platform: "",
-      storeDescription: undefined,
-      adIdeas: undefined,
+      storeName: '',
+      storeAddress: '',
+      storePhone: '',
+      storeEmail: '',
+      assistantUrl: '',
+      platform: '',
+      storeDescription: '',
+      adIdeas: '',
     },
   })
 
@@ -86,51 +87,37 @@ export function FormComponent() {
         throw new Error(errorData.error)
       }
 
-      // Generate image with retry logic
-      let retryCount = 0
-      const maxRetries = 2
-      
-      while (retryCount <= maxRetries) {
-        try {
-          const imageResponse = await fetch('/api/generateImage', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              prompt: generatePrompt({
-                platform: data.platform,
-                assistantUrl: data.assistantUrl,
-                storeName: data.storeName ?? '',
-                storeAddress: data.storeAddress ?? '',
-                storePhone: data.storePhone ?? '',
-                storeEmail: data.storeEmail ?? '',
-                storeDescription: data.storeDescription ?? '',
-                adIdeas: data.adIdeas ?? ''
-              }),
-              platform: data.platform,
-              url: data.assistantUrl
-            }),
-          })
+      // Generate image without retries
+      const imageResponse = await fetch('/api/generateImage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          prompt: generatePrompt({
+            platform: data.platform,
+            assistantUrl: data.assistantUrl,
+            storeName: data.storeName ?? '',
+            storeAddress: data.storeAddress ?? '',
+            storePhone: data.storePhone ?? '',
+            storeEmail: data.storeEmail ?? '',
+            storeDescription: data.storeDescription ?? '',
+            adIdeas: data.adIdeas ?? ''
+          }),
+          platform: data.platform,
+          url: data.assistantUrl
+        }),
+      })
 
-          if (!imageResponse.ok) {
-            const errorData = await imageResponse.json()
-            if (imageResponse.status === 504 && retryCount < maxRetries) {
-              retryCount++
-              continue // Retry on timeout
-            }
-            throw new Error(errorData.error || 'Failed to generate image')
-          }
-
-          const imageData = await imageResponse.json()
-          setGeneratedImage(imageData.imageUrl)
-          break // Success - exit retry loop
-          
-        } catch (err) {
-          if (retryCount === maxRetries) {
-            throw err
-          }
-          retryCount++
-        }
+      if (!imageResponse.ok) {
+        const errorData = await imageResponse.json()
+        throw new Error(errorData.error || 'Failed to generate image')
       }
+
+      const imageData = await imageResponse.json()
+      if (!imageData.imageUrl) {
+        throw new Error('No image URL in response')
+      }
+      
+      setGeneratedImage(imageData.imageUrl)
 
       // Generate copy
       const copyResponse = await fetch('/api/generateCopy', {
@@ -160,7 +147,7 @@ export function FormComponent() {
       setError(err instanceof Error ? err.message : 'An error occurred')
       form.setError('assistantUrl', {
         type: 'server',
-        message: err instanceof Error ? err.message : 'Invalid assistant URL',
+        message: err instanceof Error ? err.message : 'Failed to generate image',
       })
     } finally {
       setIsLoading(false)
@@ -207,323 +194,341 @@ export function FormComponent() {
 
   return (
     <TooltipProvider>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-w-2xl mx-auto">
-          <div className="space-y-6 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-white/90">Store Details</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="storeName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center gap-2">
-                        <FormLabel>Store Name</FormLabel>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Recommended: Enter your store&apos;s official business name for better personalization
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <FormControl>
-                        <Input 
-                          placeholder="e.g. Sweet Dreams Mattress" 
-                          {...field} 
-                          value={field.value ?? ''} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+      <div className="relative min-h-screen">
+        {/* Mobile Background */}
+        <div className="fixed inset-0 md:hidden">
+          <Image
+            src="/images/_mBackground.png"
+            alt="Background"
+            fill
+            className="object-cover"
+            priority
+          />
+          {/* Overlay to ensure content remains readable */}
+          <div className="absolute inset-0 bg-black/50" />
+        </div>
 
-                <FormField
-                  control={form.control}
-                  name="storeAddress"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center gap-2">
-                        <FormLabel>Store Address</FormLabel>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Recommended: Enter your store&apos;s physical location to help localize the content
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <FormControl>
-                        <Input placeholder="e.g. 123 Main St, City, State" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+        {/* Existing Form Content - now wrapped in relative container */}
+        <div className="relative">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-w-2xl mx-auto">
+              <div className="space-y-6 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold text-white/90">Store Details</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="storeName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center gap-2">
+                            <FormLabel>Store Name</FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Recommended: Enter your store&apos;s official business name for better personalization
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <FormControl>
+                            <Input 
+                              placeholder="e.g. Sweet Dreams Mattress" 
+                              {...field} 
+                              value={field.value ?? ''} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="storePhone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center gap-2">
-                        <FormLabel>Store Phone</FormLabel>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Recommended: Add your contact number to make it easier for customers to reach you
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <FormControl>
-                        <Input placeholder="e.g. (555) 123-4567" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    <FormField
+                      control={form.control}
+                      name="storeAddress"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center gap-2">
+                            <FormLabel>Store Address</FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Recommended: Enter your store&apos;s physical location to help localize the content
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <FormControl>
+                            <Input placeholder="e.g. 123 Main St, City, State" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="storeEmail"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center gap-2">
-                        <FormLabel>Store Email</FormLabel>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Recommended: Include your email for additional contact options
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <FormControl>
-                        <Input placeholder="e.g. sales@yourstore.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
+                    <FormField
+                      control={form.control}
+                      name="storePhone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center gap-2">
+                            <FormLabel>Store Phone</FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Recommended: Add your contact number to make it easier for customers to reach you
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <FormControl>
+                            <Input placeholder="e.g. (555) 123-4567" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-white/90">MattressAI Integration</h2>
-              <FormField
-                control={form.control}
-                name="assistantUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center gap-2">
-                      <FormLabel>Assistant URL</FormLabel>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          Enter your MattressAI Assistant URL
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <FormControl>
-                        <Input placeholder="https://mattressai.com/assistant/..." {...field} />
-                      </FormControl>
-                      <SignUpButton />
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                    <FormField
+                      control={form.control}
+                      name="storeEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center gap-2">
+                            <FormLabel>Store Email</FormLabel>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Recommended: Include your email for additional contact options
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                          <FormControl>
+                            <Input placeholder="e.g. sales@yourstore.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
 
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-white/90">Ad Configuration</h2>
-              <FormField
-                control={form.control}
-                name="platform"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center gap-2">
-                      <FormLabel>Platform</FormLabel>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          Choose the social media platform for your ad
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a platform" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="bg-zinc-900 border border-white/10">
-                        <SelectItem value="Instagram">
-                          Instagram (1:1 Square)
-                        </SelectItem>
-                        <SelectItem value="Facebook">
-                          Facebook (Landscape)
-                        </SelectItem>
-                        <SelectItem value="Twitter">
-                          X (Landscape)
-                        </SelectItem>
-                        <SelectItem value="TikTok">
-                          TikTok (Vertical)
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="storeDescription"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center gap-2">
-                      <FormLabel>Store Description</FormLabel>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          Recommended: Describe your store and its unique selling points for more targeted content
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Describe what makes your store special..."
-                        className="min-h-[100px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="adIdeas"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center gap-2">
-                      <FormLabel>Ad Ideas</FormLabel>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          Recommended: Share your ideas for the ad content to better customize the output
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Share your ideas for the ad..."
-                        className="min-h-[100px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-
-          <Button 
-            type="submit" 
-            disabled={isLoading}
-            className="w-full bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white py-6 text-lg font-medium rounded-full"
-          >
-            {isLoading ? 'Generating...' : 'Generate Marketing Content'}
-          </Button>
-
-          {error && (
-            <div className="flex items-center gap-2 p-4 mt-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400">
-              <AlertCircle className="h-5 w-5 flex-shrink-0" />
-              <p className="text-sm">{error}</p>
-            </div>
-          )}
-        </form>
-      </Form>
-
-      {(generatedImage || suggestedCopy) && (
-        <div className="mt-8 space-y-8 max-w-2xl mx-auto">
-          {generatedImage && (
-            <div className="space-y-4 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
-              <h2 className="text-xl font-semibold text-white/90">Generated Image</h2>
-              <div className="relative rounded-lg overflow-hidden border border-white/10">
-                {generatedImage.startsWith('data:') ? (
-                  <Image 
-                    src={generatedImage}
-                    alt="Generated marketing image"
-                    width={1024}
-                    height={1024}
-                    className="w-full h-auto"
-                    unoptimized
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold text-white/90">MattressAI Integration</h2>
+                  <FormField
+                    control={form.control}
+                    name="assistantUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center gap-2">
+                          <FormLabel>Assistant URL</FormLabel>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Enter your MattressAI Assistant URL
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <FormControl>
+                            <Input placeholder="https://mattressai.com/assistant/..." {...field} />
+                          </FormControl>
+                          <SignUpButton />
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                ) : (
-                  <Image 
-                    src={generatedImage}
-                    alt="Generated marketing image"
-                    width={1024}
-                    height={1024}
-                    className="w-full h-auto"
-                  />
-                )}
-                <Button
-                  onClick={() => downloadImage(generatedImage)}
-                  className="absolute bottom-4 right-4 bg-black/50 hover:bg-black/70 backdrop-blur-sm"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download
-                </Button>
-              </div>
-            </div>
-          )}
+                </div>
 
-          {suggestedCopy && (
-            <div className="space-y-4 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
-              <h2 className="text-xl font-semibold text-white/90">Suggested Copy</h2>
-              <div className="relative">
-                <Textarea
-                  value={suggestedCopy}
-                  readOnly
-                  className="min-h-[100px] pr-24 bg-zinc-950/50"
-                />
-                <Button
-                  onClick={() => copyToClipboard(suggestedCopy)}
-                  className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 backdrop-blur-sm"
-                >
-                  {copySuccess ? (
-                    <Check className="h-4 w-4 mr-2" />
-                  ) : (
-                    <Copy className="h-4 w-4 mr-2" />
-                  )}
-                  {copySuccess ? 'Copied!' : 'Copy'}
-                </Button>
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold text-white/90">Ad Configuration</h2>
+                  <FormField
+                    control={form.control}
+                    name="platform"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center gap-2">
+                          <FormLabel>Platform</FormLabel>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Choose the social media platform for your ad
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a platform" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-zinc-900 border border-white/10">
+                            <SelectItem value="Instagram">
+                              Instagram (1:1 Square)
+                            </SelectItem>
+                            <SelectItem value="Facebook">
+                              Facebook (Landscape)
+                            </SelectItem>
+                            <SelectItem value="Twitter">
+                              X (Landscape)
+                            </SelectItem>
+                            <SelectItem value="TikTok">
+                              TikTok (Vertical)
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="storeDescription"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center gap-2">
+                          <FormLabel>Store Description</FormLabel>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Recommended: Describe your store and its unique selling points for more targeted content
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Describe what makes your store special..."
+                            className="min-h-[100px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="adIdeas"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center gap-2">
+                          <FormLabel>Ad Ideas</FormLabel>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Recommended: Share your ideas for the ad content to better customize the output
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Share your ideas for the ad..."
+                            className="min-h-[100px]"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
+
+              <Button 
+                type="submit" 
+                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white py-6 text-lg font-medium rounded-full"
+              >
+                {isLoading ? 'Generating...' : 'Generate Marketing Content'}
+              </Button>
+
+              {error && (
+                <div className="flex items-center gap-2 p-4 mt-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400">
+                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                  <p className="text-sm">{error}</p>
+                </div>
+              )}
+            </form>
+          </Form>
+
+          {(generatedImage || suggestedCopy) && (
+            <div className="mt-8 space-y-8 max-w-2xl mx-auto">
+              {generatedImage && (
+                <div className="space-y-4 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
+                  <h2 className="text-xl font-semibold text-white/90">Generated Image</h2>
+                  <div className="relative rounded-lg overflow-hidden border border-white/10">
+                    {generatedImage.startsWith('data:') ? (
+                      <Image 
+                        src={generatedImage}
+                        alt="Generated marketing image"
+                        width={1024}
+                        height={1024}
+                        className="w-full h-auto"
+                        unoptimized
+                      />
+                    ) : (
+                      <Image 
+                        src={generatedImage}
+                        alt="Generated marketing image"
+                        width={1024}
+                        height={1024}
+                        className="w-full h-auto"
+                      />
+                    )}
+                    <Button
+                      onClick={() => downloadImage(generatedImage)}
+                      className="absolute bottom-4 right-4 bg-black/50 hover:bg-black/70 backdrop-blur-sm"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {suggestedCopy && (
+                <div className="space-y-4 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
+                  <h2 className="text-xl font-semibold text-white/90">Suggested Copy</h2>
+                  <div className="relative">
+                    <Textarea
+                      value={suggestedCopy}
+                      readOnly
+                      className="min-h-[100px] pr-24 bg-zinc-950/50"
+                    />
+                    <Button
+                      onClick={() => copyToClipboard(suggestedCopy)}
+                      className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 backdrop-blur-sm"
+                    >
+                      {copySuccess ? (
+                        <Check className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Copy className="h-4 w-4 mr-2" />
+                      )}
+                      {copySuccess ? 'Copied!' : 'Copy'}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
+      </div>
     </TooltipProvider>
   )
 } 
