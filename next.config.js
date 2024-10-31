@@ -4,13 +4,6 @@ const nextConfig = {
     domains: ['dashboard.themattressai.com', 'chat.themattressai.com'],
   },
   poweredByHeader: false,
-  webpack: (config) => {
-    config.module.rules.push({
-      test: /\.(ico|png)$/i,
-      type: 'asset/resource',
-    })
-    return config
-  }
 };
 
 module.exports = nextConfig
