@@ -195,30 +195,8 @@ export function FormComponent() {
   return (
     <TooltipProvider>
       <div className="relative min-h-screen">
-        {/* Mobile Background */}
-        <div className="fixed inset-0 md:hidden">
-          <Image
-            src="/images/_mBackground.png"
-            alt="Background"
-            fill
-            className="object-cover"
-            priority
-          />
-          <div className="absolute inset-0 bg-black/50" />
-        </div>
-
-        {/* Mobile Header - Only shows on mobile */}
-        <div className="relative md:hidden text-center py-8 px-4">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            MattressAI Marketing
-          </h1>
-          <p className="text-lg text-white/80">
-            Generate AI-powered marketing content for your store
-          </p>
-        </div>
-
-        {/* Existing Form Content */}
-        <div className="relative">
+        {/* Existing Form Content - now wrapped in relative container */}
+        <div className="relative z-10">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-w-2xl mx-auto">
               <div className="space-y-6 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
