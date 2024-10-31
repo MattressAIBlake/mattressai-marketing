@@ -569,24 +569,21 @@ export function FormComponent() {
               )}
 
               {suggestedCopy && (
-                <div className="space-y-4 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
-                  <h2 className="text-xl font-semibold text-white/90">Suggested Copy</h2>
-                  <div className="relative">
-                    <Textarea
+                <div className="mt-8 space-y-4 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
+                  <h2 className="text-xl font-semibold text-white/90">Suggested Marketing Copy</h2>
+                  <div className="relative rounded-lg overflow-hidden border border-white/10">
+                    <textarea
                       value={suggestedCopy}
                       readOnly
-                      className="min-h-[100px] pr-24 bg-zinc-950/50"
+                      className="w-full min-h-[200px] p-4 bg-black/20 text-white/90 resize-y"
+                      style={{ minHeight: '200px' }}
                     />
                     <Button
                       onClick={() => copyToClipboard(suggestedCopy)}
-                      className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 backdrop-blur-sm"
+                      className="absolute bottom-4 right-4 bg-black/50 hover:bg-black/70 backdrop-blur-sm"
                     >
-                      {copySuccess ? (
-                        <Check className="h-4 w-4 mr-2" />
-                      ) : (
-                        <Copy className="h-4 w-4 mr-2" />
-                      )}
-                      {copySuccess ? 'Copied!' : 'Copy'}
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy
                     </Button>
                   </div>
                 </div>

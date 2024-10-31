@@ -68,7 +68,7 @@ COMPOSITION REQUIREMENTS:
 Fill the frame completely while maintaining the specified composition requirements.
 
 TECHNICAL SPECIFICATIONS:
-- Format: ${platformInfo.style}
+- Style: ${data.style}
 - Dimensions: ${platformInfo.dimensions}
 - Photorealistic, high-quality rendering
 - No text or typography elements

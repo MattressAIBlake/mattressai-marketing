@@ -7,9 +7,16 @@ const YourComponent: React.FC = () => {
 
   const handleGenerateImage = async () => {
     try {
-      const response = await fetch('/api/generateImage:1', {
+      const response = await fetch('/api/generateImage', {
         method: 'POST',
-        // your options...
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: 'your prompt here',
+          platform: 'your platform here',
+          url: 'your url here'
+        }),
       });
       
       const data = await response.json();
