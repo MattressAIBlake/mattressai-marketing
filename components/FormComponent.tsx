@@ -86,32 +86,51 @@ export function FormComponent() {
         throw new Error(errorData.error)
       }
 
-      // Generate image
-      const imageResponse = await fetch('/api/generateImage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          prompt: generatePrompt({
-            platform: data.platform,
-            assistantUrl: data.assistantUrl,
-            storeName: data.storeName ?? '',
-            storeAddress: data.storeAddress ?? '',
-            storePhone: data.storePhone ?? '',
-            storeEmail: data.storeEmail ?? '',
-            storeDescription: data.storeDescription ?? '',
-            adIdeas: data.adIdeas ?? ''
-          }),
-          platform: data.platform,
-          url: data.assistantUrl
-        }),
-      })
+      // Generate image with retry logic
+      let retryCount = 0
+      const maxRetries = 2
+      
+      while (retryCount <= maxRetries) {
+        try {
+          const imageResponse = await fetch('/api/generateImage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              prompt: generatePrompt({
+                platform: data.platform,
+                assistantUrl: data.assistantUrl,
+                storeName: data.storeName ?? '',
+                storeAddress: data.storeAddress ?? '',
+                storePhone: data.storePhone ?? '',
+                storeEmail: data.storeEmail ?? '',
+                storeDescription: data.storeDescription ?? '',
+                adIdeas: data.adIdeas ?? ''
+              }),
+              platform: data.platform,
+              url: data.assistantUrl
+            }),
+          })
 
-      if (!imageResponse.ok) {
-        throw new Error('Failed to generate image')
+          if (!imageResponse.ok) {
+            const errorData = await imageResponse.json()
+            if (imageResponse.status === 504 && retryCount < maxRetries) {
+              retryCount++
+              continue // Retry on timeout
+            }
+            throw new Error(errorData.error || 'Failed to generate image')
+          }
+
+          const imageData = await imageResponse.json()
+          setGeneratedImage(imageData.imageUrl)
+          break // Success - exit retry loop
+          
+        } catch (err) {
+          if (retryCount === maxRetries) {
+            throw err
+          }
+          retryCount++
+        }
       }
-
-      const imageData = await imageResponse.json()
-      setGeneratedImage(imageData.imageUrl)
 
       // Generate copy
       const copyResponse = await fetch('/api/generateCopy', {
