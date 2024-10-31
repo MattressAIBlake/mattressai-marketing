@@ -7,9 +7,12 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'MattressAI Marketing',
   description: 'Generate AI marketing content for your mattress store',
-  icons: {
-    icon: '/icon.png',
-  }
+  icons: [
+    { rel: 'icon', url: '/favicon.ico' },
+    { rel: 'apple-touch-icon', url: '/apple-touch-icon.png' },
+    { rel: 'icon', url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    { rel: 'icon', url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+  ]
 }
 
 export default function RootLayout({
