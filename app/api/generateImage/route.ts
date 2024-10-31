@@ -124,7 +124,7 @@ export async function POST(req: Request) {
       // Draw QR code in center with more padding
       const qrImage = await sharp(qrCodeBuffer).toBuffer()
       const qrCodeImg = await loadImage(qrImage)
-      ctx.drawImage(qrCodeImg, 90, 80, 220, 220)
+      ctx.drawImage(qrCodeImg, 90, 90, 220, 220)
 
       // Add text styling with clean white text
       ctx.fillStyle = '#FFFFFF'
@@ -138,15 +138,12 @@ export async function POST(req: Request) {
 
       // Top text
       ctx.font = 'bold 42px Arial'
-      ctx.fillText('Find Your', 200, 55)
+      ctx.fillText('Mattress Match', 200, 55)
 
       // Bottom text
       ctx.font = 'bold 46px Arial'
-      ctx.fillText('Mattress', 200, 335)
+      ctx.fillText('Using AI', 200, 355)
       
-      ctx.font = 'bold 36px Arial'
-      ctx.fillText('Using AI', 200, 375)
-
       // Convert canvas to buffer
       const finalQRBuffer = canvas.toBuffer()
 
@@ -189,8 +186,12 @@ export async function POST(req: Request) {
     }
 
   } catch (error) {
-    console.error('Error in generateImage:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Failed to generate image'
-    return NextResponse.json({ error: errorMessage }, { status: 500 })
+    console.error('Image generation error:', error);
+    return new Response(JSON.stringify({
+      error: "Sorry, we couldn't generate your image right now. Please try again in a few moments."
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }

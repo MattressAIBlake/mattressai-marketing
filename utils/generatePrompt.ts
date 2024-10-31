@@ -16,19 +16,15 @@ type PromptData = {
 const platformInstructions = {
   Instagram: {
     dimensions: '1080x1080 pixels',
-    style: 'square format, vibrant and eye-catching for Instagram feed',
   },
   Facebook: {
     dimensions: '1200x628 pixels',
-    style: 'landscape format, optimized for Facebook ads',
   },
   Twitter: {
     dimensions: '1024x512 pixels',
-    style: 'landscape format, suitable for Twitter timeline',
   },
   TikTok: {
     dimensions: '1080x1920 pixels',
-    style: 'vertical format, optimized for TikTok',
   }
 } as const
 
