@@ -21,7 +21,7 @@ const YourComponent: React.FC = () => {
       
       setImageUrl(data.imageUrl);
       
-    } catch (err) {
+    } catch (_) {
       toast.error("Something went wrong. Please try again.");
     }
   };
