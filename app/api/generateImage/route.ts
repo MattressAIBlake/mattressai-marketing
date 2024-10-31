@@ -4,6 +4,9 @@ import * as QRCode from 'qrcode';
 import sharp from 'sharp'
 import { createCanvas, loadImage } from '@napi-rs/canvas'
 
+export const maxDuration = 300; // 5 minutes
+export const dynamic = 'force-dynamic';
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
@@ -54,19 +57,30 @@ export async function POST(req: Request) {
 
     // Increase timeout for fetching the generated image
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes
+    const timeoutId = setTimeout(() => controller.abort(), 240000); // 4 minutes
 
-    const imageResponse = await fetch(dallEImageUrl, {
-      headers: {
-        'Accept': 'image/*'
-      },
-      signal: controller.signal
-    });
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    let imageResponse;
+    while (attempts < maxAttempts) {
+      try {
+        imageResponse = await fetch(dallEImageUrl, {
+          headers: { 'Accept': 'image/*' },
+          signal: controller.signal
+        });
+        if (imageResponse.ok) break;
+        attempts++;
+      } catch (error) {
+        if (attempts === maxAttempts) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+      }
+    }
 
     clearTimeout(timeoutId);
 
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to fetch generated image: ${imageResponse.status}`)
+    if (!imageResponse || !imageResponse.ok) {
+      throw new Error(`Failed to fetch generated image: ${imageResponse?.status || 'unknown error'}`)
     }
 
     // Rest of the image processing code...
