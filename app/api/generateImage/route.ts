@@ -54,12 +54,17 @@ export async function POST(req: Request) {
     }
 
     // Increase timeout for fetching the generated image
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes
+
     const imageResponse = await fetch(dallEImageUrl, {
       headers: {
         'Accept': 'image/*'
       },
-      timeout: 120000 // 2 minutes
-    })
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
 
     if (!imageResponse.ok) {
       throw new Error(`Failed to fetch generated image: ${imageResponse.status}`)
