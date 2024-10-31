@@ -8,13 +8,7 @@ export const metadata: Metadata = {
   title: 'MattressAI Marketing',
   description: 'Generate AI marketing content for your mattress store',
   icons: {
-    icon: [
-      { url: '/favicon.ico' },
-      { url: '/logo.png', type: 'image/png', sizes: '32x32' },
-    ],
-    apple: [
-      { url: '/logo.png', sizes: '180x180', type: 'image/png' },
-    ],
+    icon: '/favicon.ico',
   }
 }
 
