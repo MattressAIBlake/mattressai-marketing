@@ -204,11 +204,20 @@ export function FormComponent() {
             className="object-cover"
             priority
           />
-          {/* Overlay to ensure content remains readable */}
           <div className="absolute inset-0 bg-black/50" />
         </div>
 
-        {/* Existing Form Content - now wrapped in relative container */}
+        {/* Mobile Header - Only shows on mobile */}
+        <div className="relative md:hidden text-center py-8 px-4">
+          <h1 className="text-3xl font-bold text-white mb-2">
+            MattressAI Marketing
+          </h1>
+          <p className="text-lg text-white/80">
+            Generate AI-powered marketing content for your store
+          </p>
+        </div>
+
+        {/* Existing Form Content */}
         <div className="relative">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-w-2xl mx-auto">
