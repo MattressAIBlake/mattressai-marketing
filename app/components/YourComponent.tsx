@@ -26,7 +26,11 @@ const YourComponent: React.FC = () => {
   };
 
   return (
-    // Your component JSX
+    <div>
+      {/* Add your component JSX here */}
+      <button onClick={handleGenerateImage}>Generate Image</button>
+      {imageUrl && <img src={imageUrl} alt="Generated" />}
+    </div>
   );
 };
 
