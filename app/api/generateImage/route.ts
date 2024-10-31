@@ -172,7 +172,7 @@ export async function POST(req: Request) {
 
       return NextResponse.json({ imageUrl: dataUrl })
     } catch (err) {
-      if (err.name === 'AbortError') {
+      if (err instanceof Error && err.name === 'AbortError') {
         return NextResponse.json({ 
           error: 'Image generation timed out. Please try again.' 
         }, { status: 504 })
