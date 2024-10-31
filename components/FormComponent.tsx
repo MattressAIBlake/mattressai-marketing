@@ -17,7 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { generatePrompt, generateCopyPrompt } from "@/utils/generatePrompt"
-import { Download, Copy, Check } from "lucide-react"
+import { Download, Copy } from "lucide-react"
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
 import { Info } from "lucide-react"
 import { AlertCircle } from "lucide-react"
@@ -88,7 +88,6 @@ export function FormComponent() {
   const [error, setError] = useState<string | null>(null)
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
   const [suggestedCopy, setSuggestedCopy] = useState<string | null>(null)
-  const [copySuccess, setCopySuccess] = useState(false)
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -220,8 +219,7 @@ export function FormComponent() {
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text)
-      setCopySuccess(true)
-      setTimeout(() => setCopySuccess(false), 2000)
+      toast.success('Copied to clipboard!')
     } catch (err) {
       console.error('Failed to copy text:', err)
       setError('Failed to copy text to clipboard')
