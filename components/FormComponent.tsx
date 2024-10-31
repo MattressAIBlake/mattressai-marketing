@@ -28,7 +28,22 @@ const formSchema = z.object({
   storeAddress: z.string().optional(),
   storePhone: z.string().optional(),
   storeEmail: z.string().email().optional(),
-  storeUrl: z.string().url().optional(),
+  storeUrl: z.string()
+    .optional()
+    .transform(val => {
+      if (!val) return val;
+      if (val.startsWith('http://') || val.startsWith('https://')) return val;
+      return `https://${val}`;
+    })
+    .refine(val => {
+      if (!val) return true;
+      try {
+        new URL(val);
+        return true;
+      } catch {
+        return false;
+      }
+    }, 'Please enter a valid URL'),
   assistantUrl: z.string().url().refine(url => {
     const validDomains = [
       'dashboard.themattressai.com',
@@ -53,6 +68,21 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>
 
+type FormData = {
+  storeName: string
+  storeAddress: string
+  storePhone: string
+  storeEmail: string
+  storeUrl: string
+  assistantUrl: string
+  platform: string
+  storeDescription: string
+  adIdeas: string
+  metaphor: string
+  style: string
+  colors: string
+}
+
 export function FormComponent() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -60,7 +90,7 @@ export function FormComponent() {
   const [suggestedCopy, setSuggestedCopy] = useState<string | null>(null)
   const [copySuccess, setCopySuccess] = useState(false)
 
-  const form = useForm<FormValues>({
+  const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       storeName: '',
@@ -107,6 +137,7 @@ export function FormComponent() {
             storeAddress: data.storeAddress ?? '',
             storePhone: data.storePhone ?? '',
             storeEmail: data.storeEmail ?? '',
+            storeUrl: data.storeUrl ?? '',
             storeDescription: data.storeDescription ?? '',
             adIdeas: data.adIdeas ?? '',
             metaphor: data.metaphor ?? '',

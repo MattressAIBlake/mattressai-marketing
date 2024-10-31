@@ -78,19 +78,19 @@ export async function POST(req: Request) {
       const baseImage = sharp(Buffer.from(imageBuffer))
 
       // Create larger canvas for QR code with gradient background
-      const canvas = createCanvas(500, 500)
+      const canvas = createCanvas(400, 400)
       const ctx = canvas.getContext('2d')
 
       // Create rounded rectangle path
-      const cornerRadius = 25  // Adjust radius as needed
+      const cornerRadius = 20
       ctx.beginPath()
       ctx.moveTo(cornerRadius, 0)
-      ctx.lineTo(500 - cornerRadius, 0)
-      ctx.quadraticCurveTo(500, 0, 500, cornerRadius)
-      ctx.lineTo(500, 500 - cornerRadius)
-      ctx.quadraticCurveTo(500, 500, 500 - cornerRadius, 500)
-      ctx.lineTo(cornerRadius, 500)
-      ctx.quadraticCurveTo(0, 500, 0, 500 - cornerRadius)
+      ctx.lineTo(400 - cornerRadius, 0)
+      ctx.quadraticCurveTo(400, 0, 400, cornerRadius)
+      ctx.lineTo(400, 400 - cornerRadius)
+      ctx.quadraticCurveTo(400, 400, 400 - cornerRadius, 400)
+      ctx.lineTo(cornerRadius, 400)
+      ctx.quadraticCurveTo(0, 400, 0, 400 - cornerRadius)
       ctx.lineTo(0, cornerRadius)
       ctx.quadraticCurveTo(0, 0, cornerRadius, 0)
       ctx.closePath()
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
       ctx.clip()
 
       // Create gradient background with transparency
-      const gradient = ctx.createLinearGradient(0, 0, 0, 500)
+      const gradient = ctx.createLinearGradient(0, 0, 0, 400)
       gradient.addColorStop(0, 'rgba(26, 38, 52, 0.85)')
       gradient.addColorStop(0.33, 'rgba(44, 62, 80, 0.85)')
       gradient.addColorStop(0.66, 'rgba(52, 73, 94, 0.85)')
@@ -107,11 +107,11 @@ export async function POST(req: Request) {
 
       // Fill background with gradient
       ctx.fillStyle = gradient
-      ctx.fillRect(0, 0, 500, 500)
+      ctx.fillRect(0, 0, 400, 400)
 
       // Generate white QR code - smaller relative to canvas
       const qrCodeDataUrl = await QRCode.toDataURL(url, { 
-        width: 260,
+        width: 220,
         margin: 0,
         color: {
           dark: '#FFFFFF',
@@ -124,7 +124,7 @@ export async function POST(req: Request) {
       // Draw QR code in center with more padding
       const qrImage = await sharp(qrCodeBuffer).toBuffer()
       const qrCodeImg = await loadImage(qrImage)
-      ctx.drawImage(qrCodeImg, 120, 100, 260, 260)
+      ctx.drawImage(qrCodeImg, 90, 80, 220, 220)
 
       // Add text styling with clean white text
       ctx.fillStyle = '#FFFFFF'
@@ -137,15 +137,15 @@ export async function POST(req: Request) {
       ctx.shadowOffsetY = 0
 
       // Top text
-      ctx.font = 'bold 52px Arial'
-      ctx.fillText('Find Your', 250, 70)
+      ctx.font = 'bold 42px Arial'
+      ctx.fillText('Find Your', 200, 55)
 
       // Bottom text
-      ctx.font = 'bold 56px Arial'
-      ctx.fillText('Mattress', 250, 420)
+      ctx.font = 'bold 46px Arial'
+      ctx.fillText('Mattress', 200, 335)
       
-      ctx.font = 'bold 44px Arial'
-      ctx.fillText('Using AI', 250, 470)
+      ctx.font = 'bold 36px Arial'
+      ctx.fillText('Using AI', 200, 375)
 
       // Convert canvas to buffer
       const finalQRBuffer = canvas.toBuffer()
