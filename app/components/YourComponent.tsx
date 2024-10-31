@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
+import Image from 'next/image';
 
 const YourComponent: React.FC = () => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -18,18 +19,25 @@ const YourComponent: React.FC = () => {
         return;
       }
       
-      // Handle success...
+      setImageUrl(data.imageUrl);
       
-    } catch (error) {
+    } catch (err) {
       toast.error("Something went wrong. Please try again.");
     }
   };
 
   return (
     <div>
-      {/* Add your component JSX here */}
       <button onClick={handleGenerateImage}>Generate Image</button>
-      {imageUrl && <img src={imageUrl} alt="Generated" />}
+      {imageUrl && (
+        <Image 
+          src={imageUrl}
+          alt="Generated"
+          width={500}
+          height={500}
+          className="w-auto h-auto"
+        />
+      )}
     </div>
   );
 };
