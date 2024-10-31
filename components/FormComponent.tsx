@@ -206,7 +206,7 @@ export function FormComponent() {
                             <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            Recommended: Enter your store's official business name for better personalization
+                            Recommended: Enter your store&apos;s official business name for better personalization
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -234,7 +234,7 @@ export function FormComponent() {
                             <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            Recommended: Enter your store's physical location to help localize the content
+                            Recommended: Enter your store&apos;s physical location to help localize the content
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -452,14 +452,15 @@ export function FormComponent() {
               <h2 className="text-xl font-semibold text-white/90">Generated Image</h2>
               <div className="relative rounded-lg overflow-hidden border border-white/10">
                 {generatedImage.startsWith('data:') ? (
-                  // Use img tag for data URLs
-                  <img 
+                  <Image 
                     src={generatedImage}
                     alt="Generated marketing image"
+                    width={1024}
+                    height={1024}
                     className="w-full h-auto"
+                    unoptimized
                   />
                 ) : (
-                  // Use Next.js Image component for regular URLs
                   <Image 
                     src={generatedImage}
                     alt="Generated marketing image"

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import * as QRCode from 'qrcode';
 import sharp from 'sharp'
-import { createCanvas, registerFont } from 'canvas'
+import { createCanvas } from 'canvas'
 import { loadImage } from 'canvas'
 
 const openai = new OpenAI({
@@ -128,11 +128,6 @@ export async function POST(req: Request) {
 
     // Convert canvas to buffer
     const finalQRBuffer = canvas.toBuffer()
-
-    // Get dimensions of the base image
-    const imageMetadata = await baseImage.metadata()
-    const baseWidth = imageMetadata.width || 1024
-    const baseHeight = imageMetadata.height || 1024
 
     // Calculate position for top left quadrant
     // Adding some padding from edges
