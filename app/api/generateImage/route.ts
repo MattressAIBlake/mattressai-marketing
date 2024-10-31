@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import * as QRCode from 'qrcode';
 import sharp from 'sharp'
-import { createCanvas } from 'canvas'
-import { loadImage } from 'canvas'
+import { createCanvas, loadImage } from '@napi-rs/canvas'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
