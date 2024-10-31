@@ -24,30 +24,26 @@ import { AlertCircle } from "lucide-react"
 import Image from "next/image"
 
 const formSchema = z.object({
-  storeName: z.string().nonempty(),
-  storeAddress: z.string().nonempty(),
-  storePhone: z.string().nonempty(),
-  storeEmail: z.string().email(),
-  assistantUrl: z.string()
-    .url()
-    .refine((url) => {
-      try {
-        const parsedUrl = new URL(url);
-        return [
-          'dashboard.themattressai.com',
-          'www.dashboard.themattressai.com',
-          'chat.themattressai.com',
-          'www.chat.themattressai.com'
-        ].some(domain => parsedUrl.hostname === domain);
-      } catch {
-        return false;
-      }
-    }, {
-      message: 'To use this feature, you must be a MattressAI Retail partner. Please click "Sign up for MattressAI" to get started.'
-    }),
-  platform: z.string().nonempty(),
-  storeDescription: z.string().nonempty(),
-  adIdeas: z.string().nonempty(),
+  storeName: z.string().nullish(),
+  storeAddress: z.string().nullish(),
+  storePhone: z.string().nullish(),
+  storeEmail: z.string().email().nullish(),
+  assistantUrl: z.string().url().refine(url => {
+    const validDomains = [
+      'dashboard.themattressai.com',
+      'www.dashboard.themattressai.com',
+      'chat.themattressai.com',
+      'www.chat.themattressai.com'
+    ];
+    try {
+      return validDomains.includes(new URL(url).hostname);
+    } catch {
+      return false;
+    }
+  }, 'To use this feature, you must be a MattressAI Retail partner. Please click "Sign up for MattressAI" to get started.'),
+  platform: z.string().min(1, 'Please select a platform'),
+  storeDescription: z.string().nullish(),
+  adIdeas: z.string().nullish(),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -95,7 +91,16 @@ export function FormComponent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          prompt: generatePrompt(data),
+          prompt: generatePrompt({
+            platform: data.platform,
+            assistantUrl: data.assistantUrl,
+            storeName: data.storeName || '',
+            storeAddress: data.storeAddress || '',
+            storePhone: data.storePhone || '',
+            storeEmail: data.storeEmail || '',
+            storeDescription: data.storeDescription || '',
+            adIdeas: data.adIdeas || ''
+          }),
           platform: data.platform,
           url: data.assistantUrl
         }),
@@ -112,7 +117,16 @@ export function FormComponent() {
       const copyResponse = await fetch('/api/generateCopy', {
         method: 'POST',
         body: JSON.stringify({ 
-          prompt: generateCopyPrompt(data)
+          prompt: generateCopyPrompt({
+            platform: data.platform,
+            assistantUrl: data.assistantUrl,
+            storeName: data.storeName || '',
+            storeAddress: data.storeAddress || '',
+            storePhone: data.storePhone || '',
+            storeEmail: data.storeEmail || '',
+            storeDescription: data.storeDescription || '',
+            adIdeas: data.adIdeas || ''
+          })
         }),
       })
 
@@ -192,7 +206,7 @@ export function FormComponent() {
                             <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            Enter your store&apos;s official business name
+                            Recommended: Enter your store's official business name for better personalization
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -216,7 +230,7 @@ export function FormComponent() {
                             <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            Enter your store&apos;s physical location
+                            Recommended: Enter your store's physical location to help localize the content
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -240,7 +254,7 @@ export function FormComponent() {
                             <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            Enter your store&apos;s contact number
+                            Recommended: Add your contact number to make it easier for customers to reach you
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -264,7 +278,7 @@ export function FormComponent() {
                             <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            Enter your store&apos;s email address
+                            Recommended: Include your email for additional contact options
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -364,7 +378,7 @@ export function FormComponent() {
                           <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          Describe your store and its unique selling points
+                          Recommended: Describe your store and its unique selling points for more targeted content
                         </TooltipContent>
                       </Tooltip>
                     </div>
@@ -392,7 +406,7 @@ export function FormComponent() {
                           <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          Share your ideas for the ad content
+                          Recommended: Share your ideas for the ad content to better customize the output
                         </TooltipContent>
                       </Tooltip>
                     </div>

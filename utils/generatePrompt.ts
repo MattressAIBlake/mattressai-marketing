@@ -1,11 +1,12 @@
 type PromptData = {
-  storeName: string
-  storeAddress: string
-  storePhone: string
-  storeEmail: string
-  storeDescription: string
-  adIdeas: string
-  platform: string
+  platform: string;
+  assistantUrl: string;
+  storeName: string;
+  storeAddress: string;
+  storePhone: string;
+  storeEmail: string;
+  storeDescription: string;
+  adIdeas: string;
 }
 
 const platformInstructions = {
@@ -32,7 +33,7 @@ export function generatePrompt(data: PromptData) {
   const platformInfo = platformInstructions[platform]
 
   return `
-Create a visually stunning and creative marketing image based on the following concept and store details:
+Create a  marketing image based on the following concept and store details:
 
 CORE CONCEPT:
 ${data.adIdeas}
@@ -40,23 +41,13 @@ ${data.adIdeas}
 STORE CONTEXT:
 ${data.storeDescription}
 
-CREATIVE DIRECTION:
-- Create an attractive, attention-commanding visual
-- Design for maximum visual impact in the first 0.5 seconds of viewing
-- Use rich colors, or unexpected elements to create intrigue
-- Be creative while maintaining premium quality
-- Avoid generic or basic mattress product photos
+Create a  premium-quality image that captures the essence of mattress shopping in an engaging and appealing way. Use rich, vibrant colors to attract attention. Consider incorporating one of the following ideas:
 
-TEXT AND VISUAL REQUIREMENTS:
-- The ONLY text in the image should be "Scan toShop with AI"
-- Include 2 elegant arrows pointing to the bottom right corner
-- Make the arrows and text pop on the image
-- DO NOT include QR codes, additional text, or branding elements
+	•	A cozy bedroom setting with elegantly arranged mattresses, showcasing comfort and variety.
+	•	A person comfortably floating on a mattress among soft, fluffy clouds, symbolizing the quest for perfect sleep.
+	•	An artistic display of mattresses layered or stacked in a visually pleasing pattern, highlighting choice and abundance.
 
-COMPOSITION REQUIREMENTS:
-- Fill the ENTIRE frame with the main visual - no empty/negative space
-- Create edge-to-edge impact that maximizes the available dimensions
-- Compose the scene to naturally draw attention to the bottom right corner
+Fill the entire frame with this captivating visual—no empty space—to maximize impact. Ensure the composition naturally guides the viewers eye to the bottom right corner while keeping the left upper quadrant less busy to allow space
 
 TECHNICAL SPECIFICATIONS:
 - Format: ${platformInfo.style}
