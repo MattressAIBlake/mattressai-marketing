@@ -67,8 +67,6 @@ const formSchema = z.object({
   colors: z.string().optional(),
 }).strict()
 
-type FormValues = z.infer<typeof formSchema>
-
 type FormData = {
   storeName: string
   storeAddress: string
