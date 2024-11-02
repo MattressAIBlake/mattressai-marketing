@@ -20,41 +20,9 @@ const sizeMapping = {
 
 type SupportedSize = '1024x1024' | '1792x1024' | '1024x1792'
 
-// Move QR code generation outside the main function so it's only created once
-const createQRCodeOverlay = async (url: string) => {
-  // Create larger canvas for QR code with gradient background
-  const canvas = createCanvas(400, 400)
-  const ctx = canvas.getContext('2d')
-
-  // Create rounded rectangle path
-  const cornerRadius = 20
-  ctx.beginPath()
-  ctx.moveTo(cornerRadius, 0)
-  ctx.lineTo(400 - cornerRadius, 0)
-  ctx.quadraticCurveTo(400, 0, 400, cornerRadius)
-  ctx.lineTo(400, 400 - cornerRadius)
-  ctx.quadraticCurveTo(400, 400, 400 - cornerRadius, 400)
-  ctx.lineTo(cornerRadius, 400)
-  ctx.quadraticCurveTo(0, 400, 0, 400 - cornerRadius)
-  ctx.lineTo(0, cornerRadius)
-  ctx.quadraticCurveTo(0, 0, cornerRadius, 0)
-  ctx.closePath()
-  
-  // Clip to the rounded rectangle
-  ctx.clip()
-
-  // Create gradient background with transparency
-  const gradient = ctx.createLinearGradient(0, 0, 0, 400)
-  gradient.addColorStop(0, 'rgba(26, 38, 52, 0.85)')
-  gradient.addColorStop(0.33, 'rgba(44, 62, 80, 0.85)')
-  gradient.addColorStop(0.66, 'rgba(52, 73, 94, 0.85)')
-  gradient.addColorStop(1, 'rgba(43, 88, 118, 0.85)')
-
-  // Fill background with gradient
-  ctx.fillStyle = gradient
-  ctx.fillRect(0, 0, 400, 400)
-
-  // Generate white QR code - smaller relative to canvas
+// Remove the createQRCodeOverlay function and replace with simpler QR code generation
+const createQRCode = async (url: string) => {
+  // Generate white QR code with transparency
   const qrCodeDataUrl = await QRCode.toDataURL(url, { 
     width: 220,
     margin: 0,
@@ -63,33 +31,9 @@ const createQRCodeOverlay = async (url: string) => {
       light: '#00000000'
     }
   })
+  
   const qrCodeBase64 = qrCodeDataUrl.split(',')[1]
-  const qrCodeBuffer = Buffer.from(qrCodeBase64, 'base64')
-
-  // Draw QR code in center with more padding
-  const qrImage = await sharp(qrCodeBuffer).toBuffer()
-  const qrCodeImg = await loadImage(qrImage)
-  ctx.drawImage(qrCodeImg, 90, 90, 220, 220)
-
-  // Add text styling with clean white text
-  ctx.fillStyle = '#FFFFFF'
-  ctx.textAlign = 'center'
-  
-  // Remove all shadows and effects
-  ctx.shadowColor = 'transparent'
-  ctx.shadowBlur = 0
-  ctx.shadowOffsetX = 0
-  ctx.shadowOffsetY = 0
-
-  // Top text
-  ctx.font = 'bold 42px Inter, system-ui, -apple-system, sans-serif'
-  ctx.fillText('Mattress Match', 200, 55)
-
-  // Bottom text
-  ctx.font = 'bold 46px Inter, system-ui, -apple-system, sans-serif'
-  ctx.fillText('Using AI', 200, 370)
-  
-  return canvas.toBuffer('image/png')
+  return Buffer.from(qrCodeBase64, 'base64')
 }
 
 export async function POST(req: Request) {
@@ -110,8 +54,8 @@ export async function POST(req: Request) {
 
     const size = sizeMapping[platform as keyof typeof sizeMapping] || '1024x1024'
 
-    // Run DALL-E image generation and QR code overlay creation in parallel
-    const [dallEResponse, qrOverlay] = await Promise.all([
+    // Run DALL-E image generation and QR code creation in parallel
+    const [dallEResponse, qrCode] = await Promise.all([
       openai.images.generate({
         model: 'dall-e-3',
         prompt,
@@ -122,7 +66,7 @@ export async function POST(req: Request) {
       }, {
         timeout: 30000,
       }),
-      createQRCodeOverlay(url)
+      createQRCode(url)
     ])
 
     const dallEImageUrl = dallEResponse.data[0].url
@@ -162,14 +106,29 @@ export async function POST(req: Request) {
     const imageBuffer = await imageResponse.arrayBuffer()
     const baseImage = sharp(Buffer.from(imageBuffer))
 
-    // Composite QR Code onto DALL-E Image
+    // Load your background PNG (you'll need to create this file)
+    const qrBackground = await sharp('public/images/qr-background.png')
+      .resize(400, 400)
+      .toBuffer()
+
+    // Composite QR code onto background, then onto main image
+    const qrWithBackground = await sharp(qrBackground)
+      .composite([
+        {
+          input: qrCode,
+          top: 90,
+          left: 90,
+        }
+      ])
+      .toBuffer()
+
     const finalImageBuffer = await baseImage
       .composite([
         {
-          input: qrOverlay,
+          input: qrWithBackground,
           top: 40,
           left: 40,
-        },
+        }
       ])
       .png()
       .toBuffer()
