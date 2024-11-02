@@ -247,12 +247,6 @@ export function FormComponent() {
     }
   }
 
-  const handleSignup = async () => {
-    const data = form.getValues()
-    await sendWebhookData(data, 'signup')
-    window.open('https://dashboard.themattressai.com', '_blank')
-  }
-
   return (
     <TooltipProvider>
       <div className="relative min-h-screen">
@@ -367,7 +361,6 @@ export function FormComponent() {
                             <Input placeholder="https://mattressai.com/assistant/..." {...field} />
                           </FormControl>
                           <Button 
-                            onClick={() => window.open('https://dashboard.themattressai.com', '_blank')}
                             className="w-full bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white py-6 text-lg font-medium rounded-full mb-8"
                           >
                             Sign up for MattressAI
