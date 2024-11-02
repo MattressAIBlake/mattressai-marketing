@@ -4,6 +4,7 @@ const nextConfig = {
     domains: ['dashboard.themattressai.com', 'chat.themattressai.com'],
   },
   poweredByHeader: false,
+  output: 'standalone',
 };
 
 module.exports = nextConfig
