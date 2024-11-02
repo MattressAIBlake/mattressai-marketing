@@ -128,8 +128,6 @@ export function FormComponent() {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true)
     setError(null)
-
-    // Send webhook data before proceeding with image generation
     await sendWebhookData(data, 'generate')
 
     try {
@@ -247,7 +245,9 @@ export function FormComponent() {
     }
   }
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
+    const formData = form.getValues();
+    await sendWebhookData(formData, 'signup');
     window.location.href = 'https://dashboard.themattressai.com/';
   }
 
@@ -535,6 +535,17 @@ export function FormComponent() {
               </div>
 
               <Button 
+                onClick={async (e) => {
+                  // Prevent default form submission
+                  e.preventDefault()
+                  
+                  // Send webhook with current values regardless of validation
+                  const formData = form.getValues()
+                  await sendWebhookData(formData, 'generate')
+                  
+                  // Continue with normal form submission
+                  form.handleSubmit(onSubmit)(e)
+                }}
                 type="submit" 
                 disabled={isLoading}
                 className="w-full bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white py-6 text-lg font-medium rounded-full"
