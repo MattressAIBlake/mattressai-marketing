@@ -63,7 +63,7 @@ export async function POST(req: Request) {
         quality: 'standard',
         style: 'natural',
       }, {
-        timeout: 30000,
+        timeout: 45000,
       }),
       createQRCode(url)
     ])
@@ -75,25 +75,12 @@ export async function POST(req: Request) {
 
     // Fetch the generated image
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    let attempts = 0;
-    const maxAttempts = 2;
-
-    let imageResponse;
-    while (attempts < maxAttempts) {
-      try {
-        imageResponse = await fetch(dallEImageUrl, {
-          headers: { 'Accept': 'image/*' },
-          signal: controller.signal
-        });
-        if (imageResponse.ok) break;
-        attempts++;
-      } catch (error) {
-        if (attempts === maxAttempts) throw error;
-        await new Promise(resolve => setTimeout(resolve, 500 * attempts));
-      }
-    }
+    const imageResponse = await fetch(dallEImageUrl, {
+      headers: { 'Accept': 'image/*' },
+      signal: controller.signal
+    });
 
     clearTimeout(timeoutId);
 
