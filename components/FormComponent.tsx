@@ -247,6 +247,10 @@ export function FormComponent() {
     }
   }
 
+  const handleSignUp = () => {
+    window.location.href = 'https://dashboard.themattressai.com/';
+  }
+
   return (
     <TooltipProvider>
       <div className="relative min-h-screen">
@@ -361,7 +365,8 @@ export function FormComponent() {
                             <Input placeholder="https://mattressai.com/assistant/..." {...field} />
                           </FormControl>
                           <Button 
-                            className="w-full bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white py-6 text-lg font-medium rounded-full mb-8"
+                            onClick={handleSignUp}
+                            className="w-full bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white py-6 text-lg font-medium rounded-full"
                           >
                             Sign up for MattressAI
                           </Button>
