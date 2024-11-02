@@ -108,9 +108,31 @@ export function FormComponent() {
     },
   })
 
-  async function onSubmit(data: FormValues) {
+  const sendWebhookData = async (data: Partial<FormData>, action: 'signup' | 'generate') => {
+    try {
+      await fetch('/api/webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          storeName: data.storeName,
+          storePhone: data.storePhone,
+          storeEmail: data.storeEmail,
+          action
+        }),
+      })
+    } catch (error) {
+      console.error('Failed to send webhook:', error)
+    }
+  }
+
+  const onSubmit = async (data: FormData) => {
     setIsLoading(true)
     setError(null)
+
+    // Send webhook data before proceeding with image generation
+    await sendWebhookData(data, 'generate')
 
     try {
       // Validate assistant URL
@@ -227,15 +249,11 @@ export function FormComponent() {
     }
   }
 
-  const SignUpButton = () => (
-    <Button
-      type="button"
-      onClick={() => window.open('https://dashboard.themattressai.com', '_blank')}
-      className="whitespace-nowrap bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white font-medium rounded-full px-6"
-    >
-      Sign up for MattressAI
-    </Button>
-  )
+  const handleSignup = async () => {
+    const data = form.getValues()
+    await sendWebhookData(data, 'signup')
+    window.open('https://themattressai.com/signup', '_blank')
+  }
 
   return (
     <TooltipProvider>
@@ -350,7 +368,13 @@ export function FormComponent() {
                           <FormControl>
                             <Input placeholder="https://mattressai.com/assistant/..." {...field} />
                           </FormControl>
-                          <SignUpButton />
+                          <Button 
+                            type="button"
+                            onClick={handleSignup}
+                            variant="outline"
+                          >
+                            Sign up for MattressAI
+                          </Button>
                         </div>
                         <FormMessage />
                       </FormItem>
