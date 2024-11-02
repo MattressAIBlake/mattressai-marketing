@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import * as QRCode from 'qrcode';
 import sharp from 'sharp'
-import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas'
 
 export const maxDuration = 60; // 1 minute max for hobby plan
 export const dynamic = 'force-dynamic';
@@ -154,5 +153,3 @@ export async function POST(req: Request) {
     }, { status: 500 })
   }
 }
-
-GlobalFonts.registerFromPath('public/fonts/Inter-Bold.ttf', 'Inter')
