@@ -23,6 +23,7 @@ import { Info } from "lucide-react"
 import { AlertCircle } from "lucide-react"
 import Image from "next/image"
 import { toast } from 'react-toastify'
+import { AnimatedModal } from "@/components/ui/animated-modal"
 
 const formSchema = z.object({
   storeName: z.string().optional(),
@@ -87,6 +88,8 @@ export function FormComponent() {
   const [error, setError] = useState<string | null>(null)
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
   const [suggestedCopy, setSuggestedCopy] = useState<string | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isLoadingModalOpen, setIsLoadingModalOpen] = useState(false)
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -126,6 +129,10 @@ export function FormComponent() {
   }
 
   const onSubmit = async (data: FormData) => {
+    setIsLoading(true)
+    setError(null)
+    setIsLoadingModalOpen(true)
+    
     try {
       // Run both requests in parallel
       const [imageResponse, copyResponse] = await Promise.all([
@@ -182,7 +189,10 @@ export function FormComponent() {
 
       setGeneratedImage(imageData.imageUrl)
       setSuggestedCopy(copyData.suggestedCopy)
+      setIsLoadingModalOpen(false)
+      setIsDialogOpen(true)
     } catch (error) {
+      setIsLoadingModalOpen(false)
       setError(error instanceof Error ? error.message : 'An error occurred')
       form.setError('assistantUrl', {
         type: 'server',
@@ -537,63 +547,74 @@ export function FormComponent() {
             </form>
           </Form>
 
-          {(generatedImage || suggestedCopy) && (
-            <div className="mt-8 space-y-8 max-w-2xl mx-auto">
-              {generatedImage && (
-                <div className="space-y-4 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
-                  <h2 className="text-xl font-semibold text-white/90">Generated Image</h2>
-                  <div className="relative rounded-lg overflow-hidden border border-white/10">
-                    {generatedImage.startsWith('data:') ? (
-                      <Image 
-                        src={generatedImage}
-                        alt="Generated marketing image"
-                        width={1024}
-                        height={1024}
-                        className="w-full h-auto"
-                        unoptimized
-                      />
-                    ) : (
-                      <Image 
-                        src={generatedImage}
-                        alt="Generated marketing image"
-                        width={1024}
-                        height={1024}
-                        className="w-full h-auto"
-                      />
-                    )}
-                    <Button
-                      onClick={() => downloadImage(generatedImage)}
-                      className="absolute bottom-4 right-4 bg-black/50 hover:bg-black/70 backdrop-blur-sm"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
-                    </Button>
-                  </div>
+          <AnimatedModal isOpen={isLoadingModalOpen} onClose={() => {}}>
+            <div className="p-8 flex flex-col items-center justify-center space-y-4">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 rounded-full border-t-2 border-blue-500 animate-spin"></div>
+                <div className="absolute inset-0 rounded-full border-2 border-white/10"></div>
+              </div>
+              <div className="space-y-2 text-center">
+                <h3 className="text-xl font-semibold text-white/90">Generating Your Content</h3>
+                <p className="text-white/70">This usually takes about 30 seconds...</p>
+              </div>
+              <div className="w-full max-w-md space-y-2">
+                <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-blue-500 to-green-500 w-full animate-[loading_2s_ease-in-out_infinite]"></div>
                 </div>
-              )}
-
-              {suggestedCopy && (
-                <div className="mt-8 space-y-4 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
-                  <h2 className="text-xl font-semibold text-white/90">Suggested Marketing Copy</h2>
-                  <div className="relative rounded-lg overflow-hidden border border-white/10">
-                    <textarea
-                      value={suggestedCopy}
-                      readOnly
-                      className="w-full min-h-[200px] p-4 bg-black/20 text-white/90 resize-y"
-                      style={{ minHeight: '200px' }}
-                    />
-                    <Button
-                      onClick={() => copyToClipboard(suggestedCopy)}
-                      className="absolute bottom-4 right-4 bg-black/50 hover:bg-black/70 backdrop-blur-sm"
-                    >
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy
-                    </Button>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
-          )}
+          </AnimatedModal>
+
+          <AnimatedModal isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)}>
+            <div className="p-6 space-y-6">
+              <h2 className="text-2xl font-semibold text-white/90">Generated Content</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {generatedImage && (
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold text-white/90">Marketing Image</h3>
+                    <div className="relative rounded-lg overflow-hidden border border-white/10">
+                      <Image 
+                        src={generatedImage}
+                        alt="Generated marketing image"
+                        width={512}
+                        height={512}
+                        className="w-full h-auto"
+                        unoptimized={generatedImage.startsWith('data:')}
+                      />
+                      <Button
+                        onClick={() => downloadImage(generatedImage)}
+                        className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 backdrop-blur-sm"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {suggestedCopy && (
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold text-white/90">Marketing Copy</h3>
+                    <div className="relative rounded-lg overflow-hidden border border-white/10">
+                      <textarea
+                        value={suggestedCopy}
+                        readOnly
+                        className="w-full h-[300px] p-4 bg-black/20 text-white/90 resize-none"
+                      />
+                      <Button
+                        onClick={() => copyToClipboard(suggestedCopy)}
+                        className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 backdrop-blur-sm"
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </AnimatedModal>
         </div>
       </div>
     </TooltipProvider>
