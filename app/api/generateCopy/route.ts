@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_COPY_API_KEY || process.env.OPENAI_API_KEY,
 })
 
 export async function POST(req: Request) {
+  const startTime = Date.now()
   try {
     const { prompt } = await req.json()
 
@@ -37,6 +38,8 @@ export async function POST(req: Request) {
     if (!suggestedCopy) {
       throw new Error('No copy generated')
     }
+
+    console.log(`Copy generation took ${Date.now() - startTime}ms`)
 
     return NextResponse.json({ suggestedCopy })
   } catch (error) {

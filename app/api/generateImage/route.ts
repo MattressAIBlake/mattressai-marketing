@@ -9,7 +9,7 @@ export const maxDuration = 60; // 1 minute max for hobby plan
 export const dynamic = 'force-dynamic';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_IMAGE_API_KEY || process.env.OPENAI_API_KEY,
 })
 
 const sizeMapping = {
@@ -38,6 +38,7 @@ const createQRCode = async (url: string) => {
 }
 
 export async function POST(req: Request) {
+  const startTime = Date.now()
   try {
     const { prompt, platform, url } = await req.json()
 
@@ -155,6 +156,7 @@ export async function POST(req: Request) {
         const finalImageBase64 = finalImageBuffer.toString('base64')
         const dataUrl = `data:image/png;base64,${finalImageBase64}`
 
+        console.log(`Image generation took ${Date.now() - startTime}ms`)
         return NextResponse.json({ imageUrl: dataUrl })
       } catch (imageError: unknown) {
         console.error('Image processing error:', imageError)

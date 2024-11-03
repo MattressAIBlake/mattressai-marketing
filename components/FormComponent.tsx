@@ -126,92 +126,67 @@ export function FormComponent() {
   }
 
   const onSubmit = async (data: FormData) => {
-    setIsLoading(true)
-    setError(null)
-    await sendWebhookData(data, 'generate')
-
     try {
-      // Validate assistant URL
-      const urlResponse = await fetch('/api/validateAssistantUrl', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assistantUrl: data.assistantUrl }),
-      })
-
-      if (!urlResponse.ok) {
-        const errorData = await urlResponse.json()
-        throw new Error(errorData.error)
-      }
-
-      // Generate image without retries
-      const imageResponse = await fetch('/api/generateImage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          prompt: generatePrompt({
+      // Run both requests in parallel
+      const [imageResponse, copyResponse] = await Promise.all([
+        fetch('/api/generateImage', {
+          method: 'POST',
+          body: JSON.stringify({ 
+            prompt: generatePrompt({
+              platform: data.platform,
+              assistantUrl: data.assistantUrl,
+              storeName: data.storeName ?? '',
+              storeAddress: data.storeAddress ?? '',
+              storePhone: data.storePhone ?? '',
+              storeEmail: data.storeEmail ?? '',
+              storeUrl: data.storeUrl ?? '',
+              storeDescription: data.storeDescription ?? '',
+              adIdeas: data.adIdeas ?? '',
+              metaphor: data.metaphor ?? '',
+              style: data.style ?? '',
+              colors: data.colors ?? ''
+            }),
             platform: data.platform,
-            assistantUrl: data.assistantUrl,
-            storeName: data.storeName ?? '',
-            storeAddress: data.storeAddress ?? '',
-            storePhone: data.storePhone ?? '',
-            storeEmail: data.storeEmail ?? '',
-            storeUrl: data.storeUrl ?? '',
-            storeDescription: data.storeDescription ?? '',
-            adIdeas: data.adIdeas ?? '',
-            metaphor: data.metaphor ?? '',
-            style: data.style ?? '',
-            colors: data.colors ?? ''
+            url: data.assistantUrl
           }),
-          platform: data.platform,
-          url: data.assistantUrl
         }),
-      })
+        fetch('/api/generateCopy', {
+          method: 'POST',
+          body: JSON.stringify({ 
+            prompt: generateCopyPrompt({
+              platform: data.platform,
+              assistantUrl: data.assistantUrl,
+              storeName: data.storeName ?? '',
+              storeAddress: data.storeAddress ?? '',
+              storePhone: data.storePhone ?? '',
+              storeEmail: data.storeEmail ?? '',
+              storeUrl: data.storeUrl ?? '',
+              storeDescription: data.storeDescription ?? '',
+              adIdeas: data.adIdeas ?? '',
+              metaphor: data.metaphor ?? '',
+              style: data.style ?? '',
+              colors: data.colors ?? ''
+            })
+          }),
+        })
+      ]);
 
-      if (!imageResponse.ok) {
-        const errorData = await imageResponse.json()
-        throw new Error(errorData.error || 'Failed to generate image')
-      }
+      // Handle responses
+      const [imageData, copyData] = await Promise.all([
+        imageResponse.json(),
+        copyResponse.json()
+      ]);
 
-      const imageData = await imageResponse.json()
-      if (!imageData.imageUrl) {
-        throw new Error('No image URL in response')
-      }
-      
+      if (!imageResponse.ok) throw new Error(imageData.error || 'Failed to generate image')
+      if (!copyResponse.ok) throw new Error(copyData.error || 'Failed to generate copy')
+
       setGeneratedImage(imageData.imageUrl)
-
-      // Generate copy
-      const copyResponse = await fetch('/api/generateCopy', {
-        method: 'POST',
-        body: JSON.stringify({ 
-          prompt: generateCopyPrompt({
-            platform: data.platform,
-            assistantUrl: data.assistantUrl,
-            storeName: data.storeName ?? '',
-            storeAddress: data.storeAddress ?? '',
-            storePhone: data.storePhone ?? '',
-            storeEmail: data.storeEmail ?? '',
-            storeUrl: data.storeUrl ?? '',
-            storeDescription: data.storeDescription ?? '',
-            adIdeas: data.adIdeas ?? '',
-            metaphor: data.metaphor ?? '',
-            style: data.style ?? '',
-            colors: data.colors ?? ''
-          })
-        }),
-      })
-
-      if (!copyResponse.ok) {
-        throw new Error('Failed to generate copy')
-      }
-
-      const copyData = await copyResponse.json()
       setSuggestedCopy(copyData.suggestedCopy)
-
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'An error occurred')
       form.setError('assistantUrl', {
         type: 'server',
-        message: err instanceof Error ? err.message : 'Failed to generate image',
+        message: error instanceof Error ? error.message : 'Failed to generate image',
       })
     } finally {
       setIsLoading(false)
