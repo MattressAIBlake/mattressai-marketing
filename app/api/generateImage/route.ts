@@ -74,7 +74,7 @@ export async function POST(req: Request) {
           quality: 'standard',
           style: 'natural',
         }, {
-          timeout: 30000,
+          timeout: 45000,
         }),
         createQRCode(url)
       ])
