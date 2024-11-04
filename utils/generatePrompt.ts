@@ -8,7 +8,7 @@ type PromptData = {
   storeUrl: string;
   storeDescription: string;
   adIdeas: string;
-  metaphor: string;
+  feeling: string;
   style: string;
   colors: string;
 }
@@ -32,9 +32,9 @@ export function generatePrompt(data: PromptData) {
   const platform = data.platform as keyof typeof platformInstructions
   const platformInfo = platformInstructions[platform]
 
-  const metaphorContext = data.metaphor ? `
+  const feelingContext = data.feeling ? `
 EMOTIONAL CONTEXT:
-The image should evoke the feeling of someone who is ${data.metaphor.toLowerCase()}, seeking a solution to their sleep problems.` : ''
+The image should evoke the feeling of someone who is ${data.feeling.toLowerCase()}, seeking a solution to their sleep problems.` : ''
 
   const styleDirection = data.style ? `
 VISUAL STYLE:
@@ -58,7 +58,7 @@ Create an appealing mattress store advertisement that emphasizes comfort and qua
 Create a marketing image for a mattress store based on the following:
 ${concept}
 Remember to keep the focus on mattresses, bedding, and sleep-related themes regardless of the creative direction.
-${storeContext}${metaphorContext}${styleDirection}${colorInstructions}
+${storeContext}${feelingContext}${styleDirection}${colorInstructions}
 
 COMPOSITION REQUIREMENTS:
 - Do not include any text or typography in the image

@@ -63,7 +63,7 @@ const formSchema = z.object({
   platform: z.string().min(1, 'Please select a platform'),
   storeDescription: z.string().optional(),
   adIdeas: z.string().optional(),
-  metaphor: z.string().optional(),
+  feeling: z.string().min(1, 'Please select a feeling'),
   style: z.string().optional(),
   colors: z.string().optional(),
 }).strict()
@@ -78,7 +78,7 @@ type FormData = {
   platform: string
   storeDescription: string
   adIdeas: string
-  metaphor: string
+  feeling: string
   style: string
   colors: string
 }
@@ -103,7 +103,7 @@ export function FormComponent() {
       platform: '',
       storeDescription: '',
       adIdeas: '',
-      metaphor: '',
+      feeling: '',
       style: '',
       colors: '',
     },
@@ -149,7 +149,7 @@ export function FormComponent() {
               storeUrl: data.storeUrl ?? '',
               storeDescription: data.storeDescription ?? '',
               adIdeas: data.adIdeas ?? '',
-              metaphor: data.metaphor ?? '',
+              feeling: data.feeling ?? '',
               style: data.style ?? '',
               colors: data.colors ?? ''
             }),
@@ -170,7 +170,7 @@ export function FormComponent() {
               storeUrl: data.storeUrl ?? '',
               storeDescription: data.storeDescription ?? '',
               adIdeas: data.adIdeas ?? '',
-              metaphor: data.metaphor ?? '',
+              feeling: data.feeling ?? '',
               style: data.style ?? '',
               colors: data.colors ?? ''
             })
@@ -450,22 +450,22 @@ export function FormComponent() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="metaphor"
+                      name="feeling"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Metaphor</FormLabel>
+                          <FormLabel>Feeling</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select a metaphor" />
+                                <SelectValue placeholder="Select a feeling" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent className="bg-zinc-900 border border-white/10">
-                              <SelectItem value="Lost">Lost</SelectItem>
                               <SelectItem value="Confused">Confused</SelectItem>
+                              <SelectItem value="Happy">Happy</SelectItem>
                               <SelectItem value="Busy">Busy</SelectItem>
                               <SelectItem value="Frustrated">Frustrated</SelectItem>
-                              <SelectItem value="any">Any</SelectItem>
+                              <SelectItem value="Peaceful">Peaceful</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -488,9 +488,10 @@ export function FormComponent() {
                             <SelectContent className="bg-zinc-900 border border-white/10">
                               <SelectItem value="Beautiful">Beautiful</SelectItem>
                               <SelectItem value="Surreal">Surreal</SelectItem>
-                              <SelectItem value="Abstract">Abstract</SelectItem>
                               <SelectItem value="Calm">Calm</SelectItem>
-                              <SelectItem value="any">Any</SelectItem>
+                              <SelectItem value="Drawing">Drawing</SelectItem>
+                              <SelectItem value="Cartoon">Cartoon</SelectItem>
+                              <SelectItem value="Hyper Realistic">Hyper Realistic</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
