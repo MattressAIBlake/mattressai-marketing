@@ -34,11 +34,11 @@ export function generatePrompt(data: PromptData) {
 
   const feelingContext = data.feeling ? `
 EMOTIONAL CONTEXT:
-The image should evoke the feeling of someone who is ${data.feeling.toLowerCase()}, seeking a solution to their sleep problems.` : ''
+The image should clearly evoke the feeling of ${data.feeling.toLowerCase()}` : ''
 
   const styleDirection = data.style ? `
 VISUAL STYLE:
-The image should be ${data.style.toLowerCase()} in nature, creating a ${data.style.toLowerCase()} atmosphere.` : ''
+The image should be in a ${data.style.toLowerCase()} style` : ''
 
   const colorInstructions = data.colors ? `
 COLOR PALETTE:
@@ -50,12 +50,12 @@ ${data.storeDescription}` : ''
 
   const concept = data.adIdeas ? `
 CORE CONCEPT:
-Create an image that incorporates this idea: ${data.adIdeas}` : `
+Create an image that incorporates the idea of ${data.adIdeas}` : `
 CORE CONCEPT:
-Create an appealing mattress store advertisement that emphasizes comfort and quality.`
+Create a visually appealing mattress store advertisement that emphasizes comfort and quality.`
 
   return `
-Create a marketing image for a mattress store based on the following:
+Create a nice marketing image for a mattress store based on the following:
 ${concept}
 Remember to keep the focus on mattresses, bedding, and sleep-related themes regardless of the creative direction.
 ${storeContext}${feelingContext}${styleDirection}${colorInstructions}
@@ -70,7 +70,7 @@ Fill the frame completely while maintaining the specified composition requiremen
 TECHNICAL SPECIFICATIONS:
 - Style: ${data.style}
 - Dimensions: ${platformInfo.dimensions}
-- Photorealistic, high-quality rendering
+- Visually appealing, high-quality rendering
 - No text or typography elements
 `.trim()
 }
@@ -101,7 +101,7 @@ Create compelling marketing copy for a mattress store:${storeInfoSection}${store
 
 Please write attention-grabbing copy that:
 1. Highlights quality sleep and comfort${data.storeName ? ' with emphasis on our store\'s unique value' : ''}
-2. Includes a clear call-to-action that encourages scanning the QR code in the bottom right corner of the image
+2. Includes a clear call-to-action that encourages scanning the QR code in the image
 3. Uses an engaging, conversational tone
 4. Incorporates relevant emojis for ${data.platform}
 5. Stays within platform-appropriate length
