@@ -4,6 +4,7 @@ import './globals.css'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { Analytics } from '@vercel/analytics/react'
+import { MattressAIButton } from '@/components/MattressAIButton'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -26,6 +27,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
+        <div className="fixed top-4 right-4 z-50">
+          <MattressAIButton />
+        </div>
         {children}
         <ToastContainer />
         <Analytics />
