@@ -30,11 +30,11 @@ const sizeMapping: Record<Platform, SupportedSize> = {
   TikTok: '1024x1792',
 };
 
-// Remove the createQRCodeOverlay function and replace with simpler QR code generation
+// Generate a white QR code with transparency
 const createQRCode = async (url: string): Promise<Buffer> => {
   // Generate white QR code with transparency
   const qrCodeDataUrl = await QRCode.toDataURL(url, { 
-    width: 220,
+    width: 280, // Increased size for better visibility
     margin: 0,
     color: {
       dark: '#FFFFFF',
@@ -143,23 +143,33 @@ export async function POST(req: Request) {
           .resize(400, 400)
           .toBuffer();
 
-        // Composite QR code onto background, then onto main image
+        // Composite QR code onto background, centered
+        // Calculate center position (background is 400x400, QR code inner area starts at 40,40 and is 320x320)
+        const qrWidth = 280; // This should match the width set in createQRCode
+        const frameInnerX = 40;
+        const frameInnerY = 40;
+        const frameInnerWidth = 320;
+        const qrLeft = frameInnerX + (frameInnerWidth - qrWidth) / 2;
+        const qrTop = frameInnerY + (frameInnerWidth - qrWidth) / 2;
+        
         const qrWithBackground = await sharp(resizedQrBackground)
           .composite([
             {
               input: qrCode,
-              top: 90,
-              left: 90,
+              top: Math.round(qrTop),
+              left: Math.round(qrLeft),
             }
           ])
           .toBuffer();
 
+        // Position the QR code in the corner of the image with a small margin
+        const margin = 20;
         const finalImageBuffer = await baseImage
           .composite([
             {
               input: qrWithBackground,
-              top: 40,
-              left: 40,
+              top: margin,
+              left: margin,
             }
           ])
           .png()
