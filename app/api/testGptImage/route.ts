@@ -28,13 +28,16 @@ export async function POST(req: Request) {
     console.log('Calling gpt-image-1 with prompt:', prompt.substring(0, 50) + '...');
     
     try {
-      const response = await openai.images.generate({
+      // Use type assertion for parameters
+      const params: any = {
         model: 'gpt-image-1',
         prompt,
         n: 1,
         size: '1024x1024',
-        quality: 'standard',
-      });
+        quality: 'medium', // Valid options: 'low', 'medium', 'high', 'auto'
+      };
+      
+      const response = await openai.images.generate(params);
       
       console.log('Response received:', JSON.stringify(response.data, null, 2));
       
@@ -42,20 +45,20 @@ export async function POST(req: Request) {
         success: true,
         url: response.data[0].url,
       });
-    } catch (openaiError: any) {
-      console.error('OpenAI API Error:', openaiError.message);
+    } catch (openaiError) {
+      console.error('OpenAI API Error:', openaiError instanceof Error ? openaiError.message : 'Unknown error');
       console.error('Full error:', JSON.stringify(openaiError, null, 2));
       
       // Detailed error response
       return NextResponse.json({
         error: 'OpenAI API Error',
-        message: openaiError.message,
-        status: openaiError?.status || 500,
-        type: openaiError?.type || 'unknown',
+        message: openaiError instanceof Error ? openaiError.message : String(openaiError),
+        status: (openaiError as { status?: number })?.status || 500,
+        type: (openaiError as { type?: string })?.type || 'unknown',
         details: process.env.NODE_ENV === 'development' ? openaiError : undefined
       }, { status: 500 });
     }
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('General error:', error);
     
     return NextResponse.json({

@@ -1,11 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
+
+interface ResultType {
+  url?: string;
+  error?: string;
+}
 
 export default function TestImageApiPage() {
   const [prompt, setPrompt] = useState('A modern cozy bedroom with a large mattress, soft lighting, and minimalist decor');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ url?: string; error?: string } | null>(null);
+  const [result, setResult] = useState<ResultType | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
 
   const addLog = (message: string) => {
@@ -36,11 +42,19 @@ export default function TestImageApiPage() {
         addLog(`Success! Image URL received`);
         setResult({ url: data.url });
       }
-    } catch (error: any) {
-      addLog(`Fetch error: ${error?.message || 'Unknown error'}`);
-      setResult({ error: error?.message || 'Unknown error occurred' });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      addLog(`Fetch error: ${errorMessage}`);
+      setResult({ error: errorMessage });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
     }
   };
 
@@ -57,8 +71,10 @@ export default function TestImageApiPage() {
             id="prompt"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={handleKeyDown}
             className="w-full p-2 border border-gray-300 rounded-md"
             rows={4}
+            aria-label="Enter image generation prompt"
           />
         </div>
         
@@ -66,6 +82,7 @@ export default function TestImageApiPage() {
           type="submit"
           disabled={loading}
           className="px-4 py-2 bg-blue-500 text-white rounded-md disabled:bg-blue-300"
+          aria-label="Generate image"
         >
           {loading ? 'Generating...' : 'Generate Image'}
         </button>
@@ -83,11 +100,16 @@ export default function TestImageApiPage() {
           ) : result.url ? (
             <div>
               <p className="mb-2">Image generated successfully:</p>
-              <img 
-                src={result.url} 
-                alt="Generated" 
-                className="max-w-full h-auto border border-gray-200 rounded-md"
-              />
+              <div className="relative w-full max-w-lg mx-auto border border-gray-200 rounded-md overflow-hidden">
+                <Image 
+                  src={result.url} 
+                  alt="Generated image from prompt"
+                  width={512}
+                  height={512}
+                  className="w-full h-auto"
+                  unoptimized={true}
+                />
+              </div>
             </div>
           ) : null}
         </div>

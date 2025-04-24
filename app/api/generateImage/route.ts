@@ -8,23 +8,30 @@ import { readFile } from 'fs/promises'
 export const maxDuration = 60; // 1 minute max for hobby plan
 export const dynamic = 'force-dynamic';
 
+// Define types for better type safety
+type Platform = 'Instagram' | 'Facebook' | 'Twitter' | 'TikTok';
+type SupportedSize = '1024x1024' | '1792x1024' | '1024x1792';
+interface RequestBody {
+  prompt: string;
+  platform: Platform;
+  url: string;
+}
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_IMAGE_API_KEY || process.env.OPENAI_API_KEY,
   organization: process.env.OPENAI_ORG_ID, // Required for gpt-image-1 model
 });
 
 // Available sizes for gpt-image-1 model
-const sizeMapping = {
+const sizeMapping: Record<Platform, SupportedSize> = {
   Instagram: '1024x1024',
   Facebook: '1792x1024',
   Twitter: '1024x1024',
   TikTok: '1024x1792',
-} as const
-
-type SupportedSize = '1024x1024' | '1792x1024' | '1024x1792'
+};
 
 // Remove the createQRCodeOverlay function and replace with simpler QR code generation
-const createQRCode = async (url: string) => {
+const createQRCode = async (url: string): Promise<Buffer> => {
   // Generate white QR code with transparency
   const qrCodeDataUrl = await QRCode.toDataURL(url, { 
     width: 220,
@@ -33,64 +40,66 @@ const createQRCode = async (url: string) => {
       dark: '#FFFFFF',
       light: '#00000000'
     }
-  })
+  });
   
-  const qrCodeBase64 = qrCodeDataUrl.split(',')[1]
-  return Buffer.from(qrCodeBase64, 'base64')
-}
+  const qrCodeBase64 = qrCodeDataUrl.split(',')[1];
+  return Buffer.from(qrCodeBase64, 'base64');
+};
 
 export async function POST(req: Request) {
-  const startTime = Date.now()
+  const startTime = Date.now();
   try {
-    const { prompt, platform, url } = await req.json()
+    const { prompt, platform, url } = await req.json() as RequestBody;
 
     // Add detailed logging
     console.log('Starting image generation with:', {
       platform,
       promptLength: prompt?.length,
       urlProvided: !!url
-    })
+    });
 
     if (!prompt) {
-      return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
+      return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
     if (!url) {
-      return NextResponse.json({ error: 'URL is required' }, { status: 400 })
+      return NextResponse.json({ error: 'URL is required' }, { status: 400 });
     }
 
     if (!platform) {
-      return NextResponse.json({ error: 'Platform is required' }, { status: 400 })
+      return NextResponse.json({ error: 'Platform is required' }, { status: 400 });
     }
 
-    const size = sizeMapping[platform as keyof typeof sizeMapping] || '1024x1024'
+    const size = sizeMapping[platform] || '1024x1024';
 
     // Generate image and QR code in parallel
     try {
-      console.log('Using image model: gpt-image-1')
+      console.log('Using image model: gpt-image-1');
+      
+      // Use a typed object with any to support all parameters
+      const generateParams: any = {
+        model: 'gpt-image-1',
+        prompt,
+        n: 1,
+        size: size,
+        quality: 'medium', // Valid options: 'low', 'medium', 'high', 'auto'
+        moderation: 'auto', // Options: 'auto', 'low'
+      };
       
       const [imageResponse, qrCode] = await Promise.all([
-        openai.images.generate({
-          model: 'gpt-image-1',
-          prompt,
-          n: 1,
-          size: size as SupportedSize,
-          quality: 'standard', // Options: 'standard', 'hd'
-          // Using type assertion to handle new parameter not yet in type definitions
-          ...({"moderation": "auto"} as any) // Options: 'auto', 'low'
-        }),
+        openai.images.generate(generateParams),
         createQRCode(url)
-      ])
+      ]);
 
       console.log('OpenAI response received:', {
         responseStructure: JSON.stringify(imageResponse).substring(0, 200),
         hasUrl: !!imageResponse.data[0]?.url,
         qrCodeSize: qrCode?.length
-      })
+      });
 
-      const imageUrl = imageResponse.data[0].url
+      const imageUrl = imageResponse.data[0].url;
       if (!imageUrl) {
-        throw new Error('Failed to generate image URL')
+        throw new Error('Failed to generate image URL');
       }
 
       // Fetch the generated image
@@ -105,34 +114,34 @@ export async function POST(req: Request) {
       clearTimeout(timeoutId);
 
       if (!fetchImageResponse || !fetchImageResponse.ok) {
-        throw new Error(`Failed to fetch generated image: ${fetchImageResponse?.status || 'unknown error'}`)
+        throw new Error(`Failed to fetch generated image: ${fetchImageResponse?.status || 'unknown error'}`);
       }
 
       // Process the image with better error handling
       try {
-        const imageBuffer = await fetchImageResponse.arrayBuffer()
-        const baseImage = sharp(Buffer.from(imageBuffer))
+        const imageBuffer = await fetchImageResponse.arrayBuffer();
+        const baseImage = sharp(Buffer.from(imageBuffer));
 
         // Load background with error handling
-        let qrBackground: Buffer
+        let qrBackground: Buffer;
         try {
           // First try process.cwd() for production
-          qrBackground = await readFile(join(process.cwd(), 'public', 'images', 'qr-background.png'))
+          qrBackground = await readFile(join(process.cwd(), 'public', 'images', 'qr-background.png'));
         } catch (err) {
-          console.error('Error loading QR background from cwd:', err)
+          console.error('Error loading QR background from cwd:', err);
           // Fallback to absolute path for development
           try {
-            qrBackground = await readFile(join('.', 'public', 'images', 'qr-background.png'))
+            qrBackground = await readFile(join('.', 'public', 'images', 'qr-background.png'));
           } catch (fallbackErr) {
-            console.error('Error loading QR background from relative path:', fallbackErr)
-            throw new Error('Failed to load QR background image')
+            console.error('Error loading QR background from relative path:', fallbackErr);
+            throw new Error('Failed to load QR background image');
           }
         }
 
         // Use sharp with the loaded buffer
         const resizedQrBackground = await sharp(qrBackground)
           .resize(400, 400)
-          .toBuffer()
+          .toBuffer();
 
         // Composite QR code onto background, then onto main image
         const qrWithBackground = await sharp(resizedQrBackground)
@@ -143,7 +152,7 @@ export async function POST(req: Request) {
               left: 90,
             }
           ])
-          .toBuffer()
+          .toBuffer();
 
         const finalImageBuffer = await baseImage
           .composite([
@@ -154,74 +163,50 @@ export async function POST(req: Request) {
             }
           ])
           .png()
-          .toBuffer()
+          .toBuffer();
 
         // Convert Final Image to Base64
-        const finalImageBase64 = finalImageBuffer.toString('base64')
-        const dataUrl = `data:image/png;base64,${finalImageBase64}`
+        const finalImageBase64 = finalImageBuffer.toString('base64');
+        const dataUrl = `data:image/png;base64,${finalImageBase64}`;
 
-        console.log(`Image generation took ${Date.now() - startTime}ms`)
-        return NextResponse.json({ imageUrl: dataUrl })
-      } catch (imageError: unknown) {
-        console.error('Image processing error:', imageError)
+        console.log(`Image generation took ${Date.now() - startTime}ms`);
+        return NextResponse.json({ imageUrl: dataUrl });
+      } catch (imageError) {
+        console.error('Image processing error:', imageError);
         return NextResponse.json({
           error: 'Failed to process the generated image. Please try again.',
           details: process.env.NODE_ENV === 'development' ? 
             (imageError instanceof Error ? imageError.message : String(imageError)) : 
             undefined
-        }, { status: 500 })
+        }, { status: 500 });
       }
 
-    } catch (openaiError: unknown) {
-      console.error('OpenAI or QR code generation error:', openaiError)
+    } catch (openaiError) {
+      console.error('OpenAI API Error:', openaiError);
       
-      // Better error handling for common gpt-image-1 issues
-      let errorMessage = 'Failed to generate image content. Please try again.';
-      let statusCode = 500;
+      // Check for organization verification error
+      const errorObj = openaiError as { status?: number, error?: { message?: string } };
       
-      if (openaiError instanceof Error) {
-        const errorText = openaiError.message || '';
-        console.error('OpenAI Error details:', errorText);
-        
-        // Check for common errors
-        if (errorText.includes('organization') || errorText.includes('verification')) {
-          errorMessage = 'Organization verification required to use this model. Please verify your OpenAI organization.';
-          statusCode = 403;
-        } else if (errorText.includes('not authorized') || errorText.includes('permission')) {
-          errorMessage = 'Not authorized to use this image generation model.';
-          statusCode = 403;
-        } else if (errorText.includes('rate limit') || errorText.includes('quota')) {
-          errorMessage = 'Rate limit exceeded for image generation.';
-          statusCode = 429;
-        } else if (errorText.includes('model')) {
-          errorMessage = 'The selected image model is not available or not supported.';
-        }
-      }
-      
-      return NextResponse.json({
-        error: errorMessage,
-        details: process.env.NODE_ENV === 'development' ? 
-          (openaiError instanceof Error ? openaiError.message : String(openaiError)) : 
-          undefined
-      }, { status: statusCode })
-    }
-
-  } catch (error: unknown) {
-    console.error('Top level error:', error)
-    
-    if (error instanceof Error) {
-      if (error.name === 'AbortError' || error.message.includes('timeout')) {
+      if (errorObj.status === 403 && errorObj.error?.message?.includes('organization must be verified')) {
         return NextResponse.json({ 
-          error: 'The request took too long to complete. Please try again.' 
-        }, { status: 504 })
+          error: 'Organization not verified', 
+          message: 'Your OpenAI organization must be verified to use this image model. Please visit https://platform.openai.com/settings/organization/general to verify your organization.',
+          details: errorObj.error
+        }, { status: 403 });
       }
+      
+      return NextResponse.json({ 
+        error: 'Failed to generate image', 
+        message: errorObj instanceof Error ? errorObj.message : 'An error occurred during image generation',
+        details: errorObj instanceof Error ? undefined : errorObj.error
+      }, { status: errorObj.status || 500 });
     }
 
-    return NextResponse.json({
-      error: "An error occurred while generating the image. Please try again.",
-      details: process.env.NODE_ENV === 'development' ? 
-        (error instanceof Error ? error.message : String(error)) : 
-        undefined
-    }, { status: 500 })
+  } catch (error) {
+    console.error('Server error:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      message: error instanceof Error ? error.message : String(error) 
+    }, { status: 500 });
   }
 }
