@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_IMAGE_API_KEY || process.env.OPENAI_API_KEY,
+  // Using gpt-image-1 model for enhanced image generation capabilities
 })
 
 const sizeMapping = {
@@ -19,6 +20,7 @@ const sizeMapping = {
   TikTok: '1024x1792',
 } as const
 
+// Updated for gpt-image-1 model which supports these dimensions
 type SupportedSize = '1024x1024' | '1792x1024' | '1024x1792'
 
 // Remove the createQRCodeOverlay function and replace with simpler QR code generation
@@ -67,12 +69,11 @@ export async function POST(req: Request) {
     try {
       const [dallEResponse, qrCode] = await Promise.all([
         openai.images.generate({
-          model: 'dall-e-3',
+          model: 'gpt-image-1',
           prompt,
           n: 1,
           size: size as SupportedSize,
-          quality: 'standard',
-          style: 'natural',
+          quality: 'hd',
         }, {
           timeout: 45000,
         }),

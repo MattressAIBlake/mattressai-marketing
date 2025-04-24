@@ -1,6 +1,6 @@
 type PromptData = {
   platform: string;
-  assistantUrl: string;
+  qrCodeUrl: string;
   storeName: string;
   storeAddress: string;
   storePhone: string;

@@ -36,12 +36,12 @@ export default function Home() {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-6xl font-extrabold text-white mb-4 text-center tracking-tight drop-shadow-[0_4px_8px_rgba(0,0,0,0.3)] bg-clip-text">
           <span className="bg-gradient-to-r from-white via-blue-100 to-white text-transparent bg-clip-text">
-            MattressAI Marketing Generator
+            Mattress Marketing Generator
           </span>
         </h1>
         <p className="text-xl text-white text-center mb-12 max-w-2xl mx-auto leading-relaxed font-medium drop-shadow-md">
-          Generate professional marketing materials to showcase your MattressAI Assistant 
-          and attract more qualified leads for your mattress store
+          Generate professional marketing materials with QR codes to showcase your mattress store
+          and attract more qualified leads
         </p>
         <FormComponent />
       </div>

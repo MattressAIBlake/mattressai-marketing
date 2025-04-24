@@ -46,20 +46,12 @@ const formSchema = z.object({
         return false;
       }
     }, 'Please enter a valid URL'),
-  assistantUrl: z.string().url().refine(url => {
-    const validDomains = [
-      'dashboard.themattressai.com',
-      'www.dashboard.themattressai.com',
-      'chat.themattressai.com',
-      'www.chat.themattressai.com'
-    ];
-    try {
-      const parsedUrl = new URL(url);
-      return validDomains.includes(parsedUrl.hostname);
-    } catch {
-      return false;
-    }
-  }, 'To use this feature, you must be a MattressAI Retail partner. Please click "Sign up for MattressAI" to get started.'),
+  qrCodeUrl: z.string().url('Please enter a valid URL')
+    .transform(val => {
+      if (!val) return val;
+      if (val.startsWith('http://') || val.startsWith('https://')) return val;
+      return `https://${val}`;
+    }),
   platform: z.string().min(1, 'Please select a platform'),
   storeDescription: z.string().optional(),
   adIdeas: z.string().optional(),
@@ -74,7 +66,7 @@ type FormData = {
   storePhone: string
   storeEmail: string
   storeUrl: string
-  assistantUrl: string
+  qrCodeUrl: string
   platform: string
   storeDescription: string
   adIdeas: string
@@ -99,7 +91,7 @@ export function FormComponent() {
       storePhone: '',
       storeEmail: '',
       storeUrl: '',
-      assistantUrl: '',
+      qrCodeUrl: '',
       platform: '',
       storeDescription: '',
       adIdeas: '',
@@ -141,7 +133,7 @@ export function FormComponent() {
           body: JSON.stringify({ 
             prompt: generatePrompt({
               platform: data.platform,
-              assistantUrl: data.assistantUrl,
+              qrCodeUrl: data.qrCodeUrl,
               storeName: data.storeName ?? '',
               storeAddress: data.storeAddress ?? '',
               storePhone: data.storePhone ?? '',
@@ -154,7 +146,7 @@ export function FormComponent() {
               colors: data.colors ?? ''
             }),
             platform: data.platform,
-            url: data.assistantUrl
+            url: data.qrCodeUrl
           }),
         }),
         fetch('/api/generateCopy', {
@@ -162,7 +154,7 @@ export function FormComponent() {
           body: JSON.stringify({ 
             prompt: generateCopyPrompt({
               platform: data.platform,
-              assistantUrl: data.assistantUrl,
+              qrCodeUrl: data.qrCodeUrl,
               storeName: data.storeName ?? '',
               storeAddress: data.storeAddress ?? '',
               storePhone: data.storePhone ?? '',
@@ -194,7 +186,7 @@ export function FormComponent() {
     } catch (error) {
       setIsLoadingModalOpen(false)
       setError(error instanceof Error ? error.message : 'An error occurred')
-      form.setError('assistantUrl', {
+      form.setError('qrCodeUrl', {
         type: 'server',
         message: error instanceof Error ? error.message : 'Failed to generate image',
       })
@@ -209,7 +201,7 @@ export function FormComponent() {
       const blob = await response.blob()
       const link = document.createElement('a')
       link.href = URL.createObjectURL(blob)
-      link.download = `mattressai-ad-${Date.now()}.png`
+      link.download = `mattress-ad-${Date.now()}.png`
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -228,12 +220,6 @@ export function FormComponent() {
       console.error('Failed to copy text:', err)
       setError('Failed to copy text to clipboard')
     }
-  }
-
-  const handleSignUp = async () => {
-    const formData = form.getValues();
-    await sendWebhookData(formData, 'signup');
-    window.location.href = 'https://dashboard.themattressai.com/';
   }
 
   return (
@@ -328,34 +314,26 @@ export function FormComponent() {
                 </div>
 
                 <div className="space-y-4">
-                  <h2 className="text-lg font-semibold text-white/90">MattressAI Integration</h2>
+                  <h2 className="text-lg font-semibold text-white/90">QR Code Configuration</h2>
                   <FormField
                     control={form.control}
-                    name="assistantUrl"
+                    name="qrCodeUrl"
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center gap-2">
-                          <FormLabel>Assistant URL</FormLabel>
+                          <FormLabel>QR Code URL</FormLabel>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
                             </TooltipTrigger>
                             <TooltipContent>
-                              Enter your MattressAI Assistant URL
+                              Enter the URL that the QR code will direct to when scanned
                             </TooltipContent>
                           </Tooltip>
                         </div>
-                        <div className="flex flex-col sm:flex-row gap-3">
-                          <FormControl>
-                            <Input placeholder="https://mattressai.com/assistant/..." {...field} />
-                          </FormControl>
-                          <Button 
-                            onClick={handleSignUp}
-                            className="w-full bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 text-white py-6 text-lg font-medium rounded-full"
-                          >
-                            Sign up for MattressAI
-                          </Button>
-                        </div>
+                        <FormControl>
+                          <Input placeholder="https://yourwebsite.com/landing-page" {...field} />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
