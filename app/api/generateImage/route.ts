@@ -10,10 +10,10 @@ export const dynamic = 'force-dynamic';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_IMAGE_API_KEY || process.env.OPENAI_API_KEY,
-  // Using gpt-image-1 model for enhanced image generation capabilities
-  organization: process.env.OPENAI_ORG_ID // Add organization ID for verification
-})
+  organization: process.env.OPENAI_ORG_ID, // Required for gpt-image-1 model
+});
 
+// Available sizes for gpt-image-1 model
 const sizeMapping = {
   Instagram: '1024x1024',
   Facebook: '1792x1024',
@@ -21,7 +21,6 @@ const sizeMapping = {
   TikTok: '1024x1792',
 } as const
 
-// Updated for gpt-image-1 model which supports these dimensions
 type SupportedSize = '1024x1024' | '1792x1024' | '1024x1792'
 
 // Remove the createQRCodeOverlay function and replace with simpler QR code generation
@@ -66,50 +65,31 @@ export async function POST(req: Request) {
 
     const size = sizeMapping[platform as keyof typeof sizeMapping] || '1024x1024'
 
-    // Run DALL-E image generation and QR code creation in parallel
+    // Generate image and QR code in parallel
     try {
-      // Log model being used
       console.log('Using image model: gpt-image-1')
       
-      let dallEResponse;
-      try {
-        // Try with gpt-image-1 first
-        dallEResponse = await openai.images.generate({
+      const [imageResponse, qrCode] = await Promise.all([
+        openai.images.generate({
           model: 'gpt-image-1',
           prompt,
           n: 1,
           size: size as SupportedSize,
-          quality: 'standard', // Changed from 'hd' to 'standard' as it's more likely to be supported
-        }, {
-          timeout: 45000,
-        });
-      } catch (modelError) {
-        console.warn('Failed to use gpt-image-1 model, falling back to dall-e-3:', modelError);
-        
-        // Fallback to dall-e-3 if gpt-image-1 fails
-        dallEResponse = await openai.images.generate({
-          model: 'dall-e-3',
-          prompt,
-          n: 1,
-          size: size as SupportedSize,
-          quality: 'standard',
-          style: 'natural',
-        }, {
-          timeout: 45000,
-        });
-      }
-      
-      // Create QR code in parallel
-      const qrCode = await createQRCode(url);
+          quality: 'standard', // Options: 'standard', 'hd'
+          // Using type assertion to handle new parameter not yet in type definitions
+          ...({"moderation": "auto"} as any) // Options: 'auto', 'low'
+        }),
+        createQRCode(url)
+      ])
 
       console.log('OpenAI response received:', {
-        responseStructure: JSON.stringify(dallEResponse).substring(0, 200),
-        hasUrl: !!dallEResponse.data[0]?.url,
+        responseStructure: JSON.stringify(imageResponse).substring(0, 200),
+        hasUrl: !!imageResponse.data[0]?.url,
         qrCodeSize: qrCode?.length
       })
 
-      const dallEImageUrl = dallEResponse.data[0].url
-      if (!dallEImageUrl) {
+      const imageUrl = imageResponse.data[0].url
+      if (!imageUrl) {
         throw new Error('Failed to generate image URL')
       }
 
@@ -117,20 +97,20 @@ export async function POST(req: Request) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const imageResponse = await fetch(dallEImageUrl, {
+      const fetchImageResponse = await fetch(imageUrl, {
         headers: { 'Accept': 'image/*' },
         signal: controller.signal
       });
 
       clearTimeout(timeoutId);
 
-      if (!imageResponse || !imageResponse.ok) {
-        throw new Error(`Failed to fetch generated image: ${imageResponse?.status || 'unknown error'}`)
+      if (!fetchImageResponse || !fetchImageResponse.ok) {
+        throw new Error(`Failed to fetch generated image: ${fetchImageResponse?.status || 'unknown error'}`)
       }
 
       // Process the image with better error handling
       try {
-        const imageBuffer = await imageResponse.arrayBuffer()
+        const imageBuffer = await fetchImageResponse.arrayBuffer()
         const baseImage = sharp(Buffer.from(imageBuffer))
 
         // Load background with error handling
