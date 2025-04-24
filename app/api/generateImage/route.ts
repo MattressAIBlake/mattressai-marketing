@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic';
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_IMAGE_API_KEY || process.env.OPENAI_API_KEY,
   // Using gpt-image-1 model for enhanced image generation capabilities
+  organization: process.env.OPENAI_ORG_ID // Add organization ID for verification
 })
 
 const sizeMapping = {
@@ -67,20 +68,42 @@ export async function POST(req: Request) {
 
     // Run DALL-E image generation and QR code creation in parallel
     try {
-      const [dallEResponse, qrCode] = await Promise.all([
-        openai.images.generate({
+      // Log model being used
+      console.log('Using image model: gpt-image-1')
+      
+      let dallEResponse;
+      try {
+        // Try with gpt-image-1 first
+        dallEResponse = await openai.images.generate({
           model: 'gpt-image-1',
           prompt,
           n: 1,
           size: size as SupportedSize,
-          quality: 'hd',
+          quality: 'standard', // Changed from 'hd' to 'standard' as it's more likely to be supported
         }, {
           timeout: 45000,
-        }),
-        createQRCode(url)
-      ])
+        });
+      } catch (modelError) {
+        console.warn('Failed to use gpt-image-1 model, falling back to dall-e-3:', modelError);
+        
+        // Fallback to dall-e-3 if gpt-image-1 fails
+        dallEResponse = await openai.images.generate({
+          model: 'dall-e-3',
+          prompt,
+          n: 1,
+          size: size as SupportedSize,
+          quality: 'standard',
+          style: 'natural',
+        }, {
+          timeout: 45000,
+        });
+      }
+      
+      // Create QR code in parallel
+      const qrCode = await createQRCode(url);
 
       console.log('OpenAI response received:', {
+        responseStructure: JSON.stringify(dallEResponse).substring(0, 200),
         hasUrl: !!dallEResponse.data[0]?.url,
         qrCodeSize: qrCode?.length
       })
@@ -171,12 +194,36 @@ export async function POST(req: Request) {
 
     } catch (openaiError: unknown) {
       console.error('OpenAI or QR code generation error:', openaiError)
+      
+      // Better error handling for common gpt-image-1 issues
+      let errorMessage = 'Failed to generate image content. Please try again.';
+      let statusCode = 500;
+      
+      if (openaiError instanceof Error) {
+        const errorText = openaiError.message || '';
+        console.error('OpenAI Error details:', errorText);
+        
+        // Check for common errors
+        if (errorText.includes('organization') || errorText.includes('verification')) {
+          errorMessage = 'Organization verification required to use this model. Please verify your OpenAI organization.';
+          statusCode = 403;
+        } else if (errorText.includes('not authorized') || errorText.includes('permission')) {
+          errorMessage = 'Not authorized to use this image generation model.';
+          statusCode = 403;
+        } else if (errorText.includes('rate limit') || errorText.includes('quota')) {
+          errorMessage = 'Rate limit exceeded for image generation.';
+          statusCode = 429;
+        } else if (errorText.includes('model')) {
+          errorMessage = 'The selected image model is not available or not supported.';
+        }
+      }
+      
       return NextResponse.json({
-        error: 'Failed to generate image content. Please try again.',
+        error: errorMessage,
         details: process.env.NODE_ENV === 'development' ? 
           (openaiError instanceof Error ? openaiError.message : String(openaiError)) : 
           undefined
-      }, { status: 500 })
+      }, { status: statusCode })
     }
 
   } catch (error: unknown) {
