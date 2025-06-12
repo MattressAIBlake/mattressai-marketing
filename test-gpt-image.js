@@ -31,11 +31,12 @@ async function testGptImage() {
       prompt: 'A modern cozy bedroom with a large mattress',
       n: 1,
       size: '1024x1024',
-      quality: 'medium',
     });
     
-    console.log('Success! Image URL:', result.data[0].url);
-    return result.data[0].url;
+    console.log('Success! Image data received');
+    const imageB64 = result.data[0].b64_json;
+    console.log('Base64 data length:', imageB64?.length || 0);
+    return imageB64;
   } catch (error) {
     console.error('ERROR:', error.message);
     console.error('Details:', error.response?.data || error);

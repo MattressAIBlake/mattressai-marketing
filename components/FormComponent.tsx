@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -26,39 +26,20 @@ import { toast } from 'react-toastify'
 import { AnimatedModal } from "@/components/ui/animated-modal"
 
 const formSchema = z.object({
-  storeName: z.string().optional(),
-  storeAddress: z.string().optional(),
-  storePhone: z.string().optional(),
-  storeEmail: z.string().email().optional(),
-  storeUrl: z.string()
-    .optional()
-    .transform(val => {
-      if (!val) return val;
-      if (val.startsWith('http://') || val.startsWith('https://')) return val;
-      return `https://${val}`;
-    })
-    .refine(val => {
-      if (!val) return true;
-      try {
-        new URL(val);
-        return true;
-      } catch {
-        return false;
-      }
-    }, 'Please enter a valid URL'),
-  qrCodeUrl: z.string().url('Please enter a valid URL')
-    .transform(val => {
-      if (!val) return val;
-      if (val.startsWith('http://') || val.startsWith('https://')) return val;
-      return `https://${val}`;
-    }),
+  storeName: z.string().min(1, 'Store name is required'),
+  storeAddress: z.string().min(1, 'Store address is required'),
+  storePhone: z.string().min(1, 'Store phone is required'),
+  storeEmail: z.string().email('Please enter a valid email'),
+  storeUrl: z.string().url('Please enter a valid URL'),
+  qrCodeUrl: z.string().url('Please enter a valid URL'),
   platform: z.string().min(1, 'Please select a platform'),
+  imageSize: z.string().min(1, 'Please select an image size'),
   storeDescription: z.string().optional(),
   adIdeas: z.string().optional(),
-  feeling: z.string().min(1, 'Please select a feeling'),
+  feeling: z.string().optional(),
   style: z.string().optional(),
   colors: z.string().optional(),
-}).strict()
+})
 
 type FormData = {
   storeName: string
@@ -68,6 +49,7 @@ type FormData = {
   storeUrl: string
   qrCodeUrl: string
   platform: string
+  imageSize: string
   storeDescription: string
   adIdeas: string
   feeling: string
@@ -77,7 +59,7 @@ type FormData = {
 
 export function FormComponent() {
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | React.ReactNode | null>(null)
   const [generatedImage, setGeneratedImage] = useState<string | null>(null)
   const [suggestedCopy, setSuggestedCopy] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -93,6 +75,7 @@ export function FormComponent() {
       storeUrl: '',
       qrCodeUrl: '',
       platform: '',
+      imageSize: '',
       storeDescription: '',
       adIdeas: '',
       feeling: '',
@@ -146,6 +129,7 @@ export function FormComponent() {
               colors: data.colors ?? ''
             }),
             platform: data.platform,
+            imageSize: data.imageSize,
             url: data.qrCodeUrl
           }),
         }),
@@ -176,7 +160,16 @@ export function FormComponent() {
         copyResponse.json()
       ]);
 
-      if (!imageResponse.ok) throw new Error(imageData.error || 'Failed to generate image')
+      if (!imageResponse.ok) {
+        // Special handling for organization verification error
+        if (imageResponse.status === 403 && imageData.error === 'Organization not verified') {
+          throw new Error(
+            `Your OpenAI organization must be verified to use this image model. Please visit https://platform.openai.com/settings/organization/general to verify your organization.`
+          )
+        }
+        throw new Error(imageData.error || imageData.message || 'Failed to generate image')
+      }
+      
       if (!copyResponse.ok) throw new Error(copyData.error || 'Failed to generate copy')
 
       setGeneratedImage(imageData.imageUrl)
@@ -186,10 +179,29 @@ export function FormComponent() {
     } catch (error) {
       setIsLoadingModalOpen(false)
       setError(error instanceof Error ? error.message : 'An error occurred')
-      form.setError('qrCodeUrl', {
-        type: 'server',
-        message: error instanceof Error ? error.message : 'Failed to generate image',
-      })
+      
+      // Don't set field error for organization verification issues since it's not a field-specific problem
+      if (error instanceof Error && error.message.includes('organization must be verified')) {
+        // Create a more helpful error display
+        setError(
+          <div className="flex flex-col space-y-2">
+            <p>Your OpenAI organization must be verified to use the image generation model.</p>
+            <a 
+              href="https://platform.openai.com/settings/organization/general" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-400 underline hover:text-blue-300"
+            >
+              Click here to verify your organization
+            </a>
+          </div>
+        )
+      } else {
+        form.setError('qrCodeUrl', {
+          type: 'server',
+          message: error instanceof Error ? error.message : 'Failed to generate image',
+        })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -386,6 +398,48 @@ export function FormComponent() {
 
                   <FormField
                     control={form.control}
+                    name="imageSize"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center gap-2">
+                          <FormLabel>Image Size</FormLabel>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-4 w-4 text-zinc-400 hover:text-white transition-colors cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Choose the image dimensions (optimized for gpt-image-1)
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select image size" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-zinc-900 border border-white/10">
+                            <SelectItem value="1024x1024">
+                              Square (1024×1024) - Instagram, General
+                            </SelectItem>
+                            <SelectItem value="1024x1792">
+                              Portrait (1024×1792) - TikTok, Stories
+                            </SelectItem>
+                            <SelectItem value="1792x1024">
+                              Landscape (1792×1024) - Facebook, Twitter
+                            </SelectItem>
+                            <SelectItem value="auto">
+                              Auto (Platform Optimized)
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="storeDescription"
                     render={({ field }) => (
                       <FormItem>
@@ -425,6 +479,15 @@ export function FormComponent() {
               <div className="space-y-6 bg-zinc-900/50 p-6 rounded-lg border border-white/10">
                 <div className="space-y-4">
                   <h2 className="text-lg font-semibold text-white/90">Visual Preferences</h2>
+                  <div className="text-sm text-white/70 bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                    <div className="flex items-start gap-2">
+                      <Info className="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-blue-200 mb-1">Enhanced with GPT-Image-1</p>
+                        <p>These preferences are incorporated into the AI prompt to guide image generation. The new model creates high-quality images directly from text descriptions.</p>
+                      </div>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -518,9 +581,11 @@ export function FormComponent() {
               </Button>
 
               {error && (
-                <div className="flex items-center gap-2 p-4 mt-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400">
-                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                  <p className="text-sm">{error}</p>
+                <div className="flex items-start gap-2 p-4 mt-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400">
+                  <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    {typeof error === 'string' ? error : error}
+                  </div>
                 </div>
               )}
             </form>
@@ -534,7 +599,8 @@ export function FormComponent() {
               </div>
               <div className="space-y-2 text-center">
                 <h3 className="text-xl font-semibold text-white/90">Generating Your Content</h3>
-                <p className="text-white/70">This usually takes about 30 seconds...</p>
+                <p className="text-white/70">Using GPT-Image-1 for high-quality results...</p>
+                <p className="text-white/60 text-sm">This usually takes about 30 seconds</p>
               </div>
               <div className="w-full max-w-md space-y-2">
                 <div className="h-1 bg-white/10 rounded-full overflow-hidden">

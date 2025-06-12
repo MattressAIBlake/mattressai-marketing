@@ -28,22 +28,26 @@ export async function POST(req: Request) {
     console.log('Calling gpt-image-1 with prompt:', prompt.substring(0, 50) + '...');
     
     try {
-      // Use type assertion for parameters
-      const params: any = {
+      // Correct parameters for gpt-image-1 model
+      const params = {
         model: 'gpt-image-1',
         prompt,
         n: 1,
-        size: '1024x1024',
-        quality: 'medium', // Valid options: 'low', 'medium', 'high', 'auto'
+        size: '1024x1024' as const,
       };
       
       const response = await openai.images.generate(params);
       
       console.log('Response received:', JSON.stringify(response.data, null, 2));
       
+      // Convert base64 to data URL for display
+      const imageB64 = response.data[0].b64_json;
+      const dataUrl = `data:image/png;base64,${imageB64}`;
+      
       return NextResponse.json({ 
         success: true,
-        url: response.data[0].url,
+        url: dataUrl, // Return data URL instead of remote URL
+        format: 'base64'
       });
     } catch (openaiError) {
       console.error('OpenAI API Error:', openaiError instanceof Error ? openaiError.message : 'Unknown error');
